@@ -1,9 +1,13 @@
 package main
 
 import (
-	ls "ls/utils"
+	"ls/myls"
+	"ls/utils"
 )
 
 func main() {
-	ls.Args()
+	path, lFlag, RFlag, aFlag, rFlag, tFlag := utils.Args()
+
+	myls.TheMainLS(path, lFlag, RFlag, aFlag, rFlag, tFlag)
+
 }
