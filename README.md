@@ -22,3 +22,10 @@ To run this program you need to install **golang**
 - **filename :** You can run the program with a name of a file that exists in the current directory. (optional)
     ```go
     go run . <flag> <filename>
+
+# ToDo list
+- `-l` flag
+- Accept files even if not a directory
+- Making Error messages
+- Justifying `ls` output
+- Improving `-R` flag

@@ -150,7 +150,7 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 				subDirs = append(subDirs, dirName+"/"+file.Name)
 			}
 		}
-		fmt.Println("\n" + dirName + ":")
+		fmt.Println(dirName + ":")
 	}
 	for _, file := range files {
 		fmt.Print(file.GetColor() + file.Name + reset + "  ")
@@ -159,6 +159,7 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 
 	if RFlag {
 		for _, subDir := range subDirs {
+			fmt.Println()
 			TheMainLS(subDir, lFlag, RFlag, aFlag, rFlag, tFlag)
 		}
 	}
