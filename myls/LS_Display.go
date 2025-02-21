@@ -1,0 +1,108 @@
+package myls
+
+import (
+	"fmt"
+	"os"
+	"os/user"
+	"strconv"
+	"strings"
+	"syscall"
+
+	"golang.org/x/term"
+)
+
+func formatFileNames(fileName string) string {
+	if strings.Contains(fileName, "'") { // We have to add more punctuation marks here
+		fileName = fmt.Sprintf("\"%s\"", fileName)
+	}
+	if strings.Contains(fileName, " ") {
+		fileName = fmt.Sprintf("'%s'", fileName)
+	}
+
+	return fileName
+}
+
+// formatLongEntry returns a detailed string for a file, including extra metadata.
+// It retrieves the number of links, owner, and group information from the file's syscall.Stat_t.
+func formatLongEntry(file MyLSFiles, info os.FileInfo) string {
+	permission := file.Mode.String()
+
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	var nlink uint64 = 1
+	var uid, gid uint32
+	if ok {
+		nlink = uint64(stat.Nlink)
+		uid = stat.Uid
+		gid = stat.Gid
+	}
+
+	owner, err := user.LookupId(strconv.Itoa(int(uid)))
+	ownerName := strconv.Itoa(int(uid))
+	if err == nil {
+		ownerName = owner.Username
+	}
+
+	group, err := user.LookupGroupId(strconv.Itoa(int(gid)))
+	groupName := strconv.Itoa(int(gid))
+	if err == nil {
+		groupName = group.Name
+	}
+
+	modTime := file.ModTime.Format("Jan 02 15:04")
+	size := fmt.Sprintf("%4d", file.Size)
+
+	fileName := formatFileNames(file.Name)
+
+	return fmt.Sprintf("%s. %d %s %s %s %s %s%s%s", permission, nlink, ownerName, groupName, size, modTime, file.GetColor(), fileName, reset)
+}
+
+func padColoredString(uncolored, colored string, width int) string {
+	// Calculate the number of spaces needed based on the visible (uncolored) length.
+	padLen := width - len(uncolored)
+	if padLen < 0 {
+		padLen = 0
+	}
+	return colored + strings.Repeat(" ", padLen)
+}
+
+func printFiles(files []MyLSFiles) {
+	width, _, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil {
+		width = 80
+	}
+
+	names := make([]string, len(files))
+	coloredNames := make([]string, len(files))
+
+	maxLen := 0
+	for i, file := range files {
+		displayName := file.Name
+		if strings.Contains(file.Name, " ") {
+			displayName = fmt.Sprintf("'%s'", file.Name)
+		}
+		names[i] = displayName
+		coloredNames[i] = file.GetColor() + displayName + reset
+		names[i] = displayName
+		if len(displayName) > maxLen {
+			maxLen = len(displayName)
+		}
+	}
+
+	colWidth := maxLen + 2
+	columns := width / colWidth
+	if columns < 1 {
+		columns = 1
+	}
+
+	rows := (len(files) + columns - 1) / columns
+
+	for row := 0; row < rows; row++ {
+		for col := 0; col < columns; col++ {
+			index := col*rows + row
+			if index < len(files) {
+				fmt.Print(padColoredString(names[index], coloredNames[index], colWidth))
+			}
+		}
+		fmt.Println()
+	}
+}

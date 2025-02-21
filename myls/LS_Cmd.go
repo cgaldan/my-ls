@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -107,6 +109,8 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 		}
 	}
 
+	var totalBlocks int64 = 0
+
 	for _, entry := range entries {
 		fileName := entry.Name()
 		if !aFlag && strings.HasPrefix(fileName, ".") {
@@ -115,6 +119,9 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 		info, err := os.Lstat(dirName + "/" + fileName)
 		if err != nil {
 			continue
+		}
+		if stat, ok := info.Sys().(*syscall.Stat_t); ok {
+			totalBlocks += int64(stat.Blocks)
 		}
 
 		isExec := !info.IsDir() && (info.Mode().Perm()&0o111 != 0)
@@ -132,6 +139,20 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 			Mode:     info.Mode(),
 		})
 
+	}
+
+	if lFlag {
+		sortByName(files)
+		fmt.Printf("total %d\n", totalBlocks/2)
+		for _, file := range files {
+			fullPath := filepath.Join(dirName, file.Name)
+			info, err := os.Lstat(fullPath)
+			if err != nil {
+				continue
+			}
+			fmt.Println(formatLongEntry(file, info))
+		}
+		return
 	}
 
 	if tFlag {
@@ -152,10 +173,13 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 		}
 		fmt.Println(dirName + ":")
 	}
-	for _, file := range files {
-		fmt.Print(file.GetColor() + file.Name + reset + "  ")
-	}
-	fmt.Println()
+
+	printFiles(files)
+	// for _, file := range files {
+	// 	fileName := formatFileNames(file.Name)
+	// 	fmt.Print(file.GetColor() + fileName + reset + "  ")
+	// }
+	// fmt.Println()
 
 	if RFlag {
 		for _, subDir := range subDirs {
