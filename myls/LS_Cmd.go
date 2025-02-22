@@ -141,8 +141,17 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 
 	}
 
-	if lFlag {
+	if tFlag {
+		sortByTime(files)
+	} else {
 		sortByName(files)
+	}
+
+	if rFlag {
+		reverseFiles(files)
+	}
+
+	if lFlag {
 		fmt.Printf("total %d\n", totalBlocks/2)
 		for _, file := range files {
 			fullPath := filepath.Join(dirName, file.Name)
@@ -153,16 +162,6 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 			fmt.Println(formatLongEntry(file, info))
 		}
 		return
-	}
-
-	if tFlag {
-		sortByTime(files)
-	} else {
-		sortByName(files)
-	}
-
-	if rFlag {
-		reverseFiles(files)
 	}
 
 	if RFlag {
