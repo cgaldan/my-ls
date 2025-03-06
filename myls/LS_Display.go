@@ -2,13 +2,12 @@ package myls
 
 import (
 	"fmt"
+	"ls/utils"
 	"os"
 	"os/user"
 	"strconv"
 	"strings"
 	"syscall"
-
-	"golang.org/x/term"
 )
 
 func formatFileNames(fileName string) string {
@@ -48,12 +47,16 @@ func formatLongEntry(file MyLSFiles, info os.FileInfo) string {
 		groupName = group.Name
 	}
 
-	modTime := file.ModTime.Format("Jan 02 15:04")
+	modTim := file.ModTime.Format("Jan 2 15:04")
+	modMonth := strings.Split(modTim, " ")[0]
+	modMonNum := strings.Split(modTim, " ")[1]
+	modTime := strings.Split(modTim, " ")[2]
+
 	size := fmt.Sprintf("%4d", file.Size)
 
 	fileName := formatFileNames(file.Name)
 
-	return fmt.Sprintf("%s. %d %s %s %s %s %s%s%s", permission, nlink, ownerName, groupName, size, modTime, file.GetColor(), fileName, reset)
+	return fmt.Sprintf("%-10s %1d %-8s %-8s %4s %3s %2s %5s %s%s%s", permission, nlink, ownerName, groupName, size, modMonth, modMonNum, modTime, file.GetColor(), fileName, reset)
 }
 
 func padColoredString(uncolored, colored string, width int) string {
@@ -66,7 +69,7 @@ func padColoredString(uncolored, colored string, width int) string {
 }
 
 func printFiles(files []MyLSFiles) {
-	width, _, err := term.GetSize(int(os.Stdout.Fd()))
+	width, err := utils.GetTerminalWidth()
 	if err != nil {
 		width = 80
 	}
@@ -74,7 +77,8 @@ func printFiles(files []MyLSFiles) {
 	names := make([]string, len(files))
 	coloredNames := make([]string, len(files))
 
-	maxLen := 0
+	totalLen := 0
+	var allnames []string
 	for i, file := range files {
 		displayName := file.Name
 		if strings.Contains(file.Name, " ") {
@@ -83,24 +87,22 @@ func printFiles(files []MyLSFiles) {
 		names[i] = displayName
 		coloredNames[i] = file.GetColor() + displayName + reset
 		names[i] = displayName
-		if len(displayName) > maxLen {
-			maxLen = len(displayName)
-		}
+
+		totalLen += len(displayName)
+		allnames = append(allnames, displayName)
 	}
 
-	colWidth := maxLen + 2
-	columns := width / colWidth
-	if columns < 1 {
-		columns = 1
-	}
+	columns := max(utils.GetColumns(len(files), width, allnames), 1)
 
 	rows := (len(files) + columns - 1) / columns
 
-	for row := 0; row < rows; row++ {
-		for col := 0; col < columns; col++ {
-			index := col*rows + row
+	widthOfColumns := utils.WidthOfEachColumn(rows, columns, allnames)
+
+	for row := range rows {
+		for column := range columns {
+			index := column*rows + row
 			if index < len(files) {
-				fmt.Print(padColoredString(names[index], coloredNames[index], colWidth))
+				fmt.Print(padColoredString(names[index], coloredNames[index], widthOfColumns[column]+2))
 			}
 		}
 		fmt.Println()
