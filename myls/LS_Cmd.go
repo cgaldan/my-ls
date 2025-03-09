@@ -11,22 +11,39 @@ import (
 )
 
 const (
-	blue  = "\033[1;34m" // Bright Blue for directories
-	green = "\033[1;32m" // Bright Green for executable files
-	cyan  = "\033[1;36m" // Bright Cyan for symbolic links
-	red   = "\033[1;31m" // Bright Red for broken symbolic links
-	reset = "\033[0m"    // Resets to the default terminal color
+	blue    = "\033[1;34m" // Bright Blue for directories
+	green   = "\033[1;32m" // Bright Green for executable files
+	cyan    = "\033[1;36m" // Bright Cyan for symbolic links
+	red     = "\033[1;31m" // Bright Red for broken symbolic links
+	magenta = "\033[1;35m" // Bright Magenta for image files
+	yellow  = "\033[1;33m" // Bright Yellow
+	black   = "\033[1;30m" // Bright Black
+	reset   = "\033[0m"    // Resets to the default terminal color
+
+	// Background colors
+	bgBlack  = "\033[40m"
+	bgRed    = "\033[41m"
+	bgYellow = "\033[43m"
+	bgBlue   = "\033[44m"
 )
 
 type MyLSFiles struct {
-	Name     string
-	IsDir    bool
-	IsExec   bool
-	IsLink   bool
-	IsBroken bool
-	Size     int64
-	ModTime  time.Time
-	Mode     fs.FileMode
+	Name           string
+	IsDir          bool
+	IsExec         bool
+	IsLink         bool
+	IsBroken       bool
+	IsBlockDevice  bool
+	IsCharDevice   bool
+	IsSocket       bool
+	IsPipe         bool
+	IsOrphanedLink bool
+	IsSetuid       bool
+	IsSetgid       bool
+	IsStickyDir    bool
+	Size           int64
+	ModTime        time.Time
+	Mode           fs.FileMode
 }
 
 // GetColor returns the appropriate ANSI color code based on the file type.
@@ -36,6 +53,16 @@ type MyLSFiles struct {
 //   - Broken symbolic links are displayed in red.
 //   - Regular files are displayed in the default terminal color.
 func (file MyLSFiles) GetColor() string {
+	ext := strings.ToLower(filepath.Ext(file.Name))
+
+	switch ext {
+	case ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg", ".mp4":
+		return magenta
+	case ".mp3", ".wav", ".ogg", ".flac":
+		return cyan
+	case ".zip", ".tar", ".gz", ".bz2", ".rar", ".7z", ".deb", ".rpm":
+		return red
+	}
 	if file.IsBroken {
 		return red
 	}
@@ -47,6 +74,21 @@ func (file MyLSFiles) GetColor() string {
 	}
 	if file.IsExec {
 		return green
+	}
+	if file.IsBlockDevice || file.IsCharDevice || file.IsPipe {
+		return bgBlack + yellow
+	}
+	if file.IsSocket {
+		return magenta
+	}
+	if file.IsSetuid {
+		return bgRed
+	}
+	if file.IsSetgid {
+		return bgYellow + black
+	}
+	if file.IsStickyDir {
+		return bgBlue
 	}
 	return reset
 }
@@ -75,7 +117,57 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 		dirName = "."
 	}
 
-	var myFS fs.FS = os.DirFS(dirName)
+	fileInfo, err := os.Stat(dirName)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	if !fileInfo.IsDir() {
+		info, err := os.Lstat(dirName)
+		if err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+		isExec := !info.IsDir() && (info.Mode().Perm()&0o111 != 0)
+		isLink := info.Mode()&os.ModeSymlink != 0
+		isBroken := isLink && !exists(dirName)
+		isBlockDevice := info.Mode()&os.ModeDevice != 0 && info.Mode()&syscall.S_IFBLK != 0
+		isCharDevice := info.Mode()&os.ModeDevice != 0 && info.Mode()&syscall.S_IFCHR != 0
+		isSocket := info.Mode()&os.ModeSocket != 0
+		isPipe := info.Mode()&os.ModeNamedPipe != 0
+		isSetuid := info.Mode()&os.ModeSetuid != 0
+		isSetgid := info.Mode()&os.ModeSetgid != 0
+		isStickyDir := info.IsDir() && (info.Mode()&os.ModeSticky != 0)
+
+		file := MyLSFiles{
+			Name:          fileInfo.Name(),
+			IsDir:         info.IsDir(),
+			IsExec:        isExec,
+			IsLink:        isLink,
+			IsBroken:      isBroken,
+			IsBlockDevice: isBlockDevice,
+			IsCharDevice:  isCharDevice,
+			IsSocket:      isSocket,
+			IsPipe:        isPipe,
+			IsSetuid:      isSetuid,
+			IsSetgid:      isSetgid,
+			IsStickyDir:   isStickyDir,
+			Size:          info.Size(),
+			ModTime:       info.ModTime(),
+			Mode:          info.Mode(),
+		}
+
+		// If long listing is requested, format accordingly.
+		if lFlag {
+			fmt.Println(formatLongEntry(file, info))
+		} else {
+			printFiles([]MyLSFiles{file})
+		}
+		return
+	}
+
+	myFS := os.DirFS(dirName)
 	entries, err := fs.ReadDir(myFS, ".")
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -127,16 +219,32 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 		isExec := !info.IsDir() && (info.Mode().Perm()&0o111 != 0)
 		isLink := info.Mode()&os.ModeSymlink != 0
 		isBroken := isLink && !exists(dirName+"/"+fileName)
+		IsBlockDevice := info.Mode()&os.ModeDevice != 0 && info.Mode()&syscall.S_IFBLK != 0
+		IsCharDevice := info.Mode()&os.ModeDevice != 0 && info.Mode()&syscall.S_IFCHR != 0
+		IsSocket := info.Mode()&os.ModeSocket != 0
+		IsPipe := info.Mode()&os.ModeNamedPipe != 0
+		// IsOrphanedLink := info.Mode()&os.ModeSymlink != 0
+		IsSetuid := info.Mode()&os.ModeSetuid != 0
+		IsSetgid := info.Mode()&os.ModeSetgid != 0
+		IsStickyDir := info.Mode()&os.ModeDir != 0 && info.Mode()&os.ModeSticky != 0
 
 		files = append(files, MyLSFiles{
-			Name:     fileName,
-			IsDir:    entry.IsDir(),
-			IsExec:   isExec,
-			IsLink:   isLink,
-			IsBroken: isBroken,
-			Size:     info.Size(),
-			ModTime:  info.ModTime(),
-			Mode:     info.Mode(),
+			Name:          fileName,
+			IsDir:         entry.IsDir(),
+			IsExec:        isExec,
+			IsLink:        isLink,
+			IsBroken:      isBroken,
+			IsBlockDevice: IsBlockDevice,
+			IsCharDevice:  IsCharDevice,
+			IsSocket:      IsSocket,
+			IsPipe:        IsPipe,
+			// IsOrphanedLink: IsOrphanedLink,
+			IsSetuid:    IsSetuid,
+			IsSetgid:    IsSetgid,
+			IsStickyDir: IsStickyDir,
+			Size:        info.Size(),
+			ModTime:     info.ModTime(),
+			Mode:        info.Mode(),
 		})
 
 	}

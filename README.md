@@ -24,8 +24,6 @@ To run this program you need to install **golang**
     go run . <flag> <filename>
 
 # ToDo list
-- fixing red color
+- fixing colors
 - Accept files even if not a directory
 - Making Error messages
-- Justifying and formating `ls` output
-- Improving `-R` flag
