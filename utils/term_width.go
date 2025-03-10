@@ -11,7 +11,6 @@ func GetTerminalWidth() (int, error) {
 	// Execute "stty size" to get terminal dimensions
 	cmd := "/bin/stty"
 	args := []string{"stty", "size"}
-	env := []string{}
 
 	// Create a pipe to capture output
 	var pipe [2]int
@@ -19,29 +18,28 @@ func GetTerminalWidth() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	r, w := pipe[0], pipe[1]
+	read, write := pipe[0], pipe[1]
 
 	// Fork and execute the command
 	pid, err := syscall.ForkExec(cmd, args, &syscall.ProcAttr{
-		Files: []uintptr{0, uintptr(w), uintptr(w)}, // Redirect stdout and stderr to the pipe
-		Env:   env,
+		Files: []uintptr{0, uintptr(write), uintptr(write)}, // Redirect stdout and stderr to the pipe
 	})
 	if err != nil {
 		return 0, err
 	}
 
 	// Close the write end of the pipe
-	syscall.Close(w)
+	syscall.Close(write)
 
 	// Read output from the read end of the pipe
 	buf := make([]byte, 32)
-	n, err := syscall.Read(r, buf)
+	n, err := syscall.Read(read, buf)
 	if err != nil {
 		return 0, err
 	}
 
 	// Close the read end of the pipe
-	syscall.Close(r)
+	syscall.Close(read)
 
 	// Wait for the process to finish
 	_, err = syscall.Wait4(pid, nil, 0, nil)

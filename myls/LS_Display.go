@@ -52,19 +52,19 @@ func formatLongEntry(file MyLSFiles, info os.FileInfo) string {
 	modMonNum := strings.Split(modTim, " ")[1]
 	modTime := strings.Split(modTim, " ")[2]
 
-	size := fmt.Sprintf("%4d", file.Size)
+	size := fmt.Sprintf("%d", file.Size)
 
 	fileName := formatFileNames(file.Name)
 
-	return fmt.Sprintf("%-10s %1d %-8s %-8s %4s %3s %2s %5s %s%s%s", permission, nlink, ownerName, groupName, size, modMonth, modMonNum, modTime, file.GetColor(), fileName, reset)
+	stringSize := 0
+
+	return fmt.Sprintf("%s %1d %s %s %*s %3s %2s %5s %s%s%s", permission, nlink, ownerName, groupName, stringSize, size, modMonth, modMonNum, modTime, file.GetColor(), fileName, reset)
 }
 
 func padColoredString(uncolored, colored string, width int) string {
 	// Calculate the number of spaces needed based on the visible (uncolored) length.
-	padLen := width - len(uncolored)
-	if padLen < 0 {
-		padLen = 0
-	}
+	padLen := max(width-len(uncolored), 0)
+
 	return colored + strings.Repeat(" ", padLen)
 }
 

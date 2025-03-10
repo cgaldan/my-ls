@@ -259,6 +259,15 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 		reverseFiles(files)
 	}
 
+	if RFlag {
+		for _, file := range files {
+			if file.IsDir {
+				subDirs = append(subDirs, dirName+"/"+file.Name)
+			}
+		}
+		fmt.Println(dirName + ":")
+	}
+
 	if lFlag {
 		fmt.Printf("total %d\n", totalBlocks/2)
 		for _, file := range files {
@@ -269,19 +278,13 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 			}
 			fmt.Println(formatLongEntry(file, info))
 		}
-		return
+
 	}
 
-	if RFlag {
-		for _, file := range files {
-			if file.IsDir {
-				subDirs = append(subDirs, dirName+"/"+file.Name)
-			}
-		}
-		fmt.Println(dirName + ":")
+	if !lFlag {
+		printFiles(files)
 	}
 
-	printFiles(files)
 	// for _, file := range files {
 	// 	fileName := formatFileNames(file.Name)
 	// 	fmt.Print(file.GetColor() + fileName + reset + "  ")

@@ -17,25 +17,18 @@ func IsRowBiggerThanTermWidth(columns, termWidth int, names []string) bool {
 		rows = (len(names) + columns - 1) / columns
 	}
 
-	test := WidthOfEachColumn(rows, columns, names)
+	widthMap := WidthOfEachColumn(rows, columns, names)
 
-	for row := range rows {
-		rowLength := 0
-		for column := range columns {
-			index := column*rows + row
-			if index < len(names) {
-				rowLength += test[column]
-			}
-			if column != columns-1 {
-				rowLength += 2
-			}
-		}
-
-		if rowLength > termWidth {
-			return true
+	rowLength := 0
+	mapLen := len(widthMap)
+	for i := range mapLen {
+		rowLength += widthMap[i]
+		if i != mapLen-1 {
+			rowLength += 2
 		}
 	}
-	return false
+
+	return rowLength >= termWidth
 }
 
 func WidthOfEachColumn(rows, columns int, allFileNames []string) map[int]int {
