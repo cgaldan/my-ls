@@ -28,4 +28,4 @@ To run this program you need to install **golang**
 - Accept files even if not a directory
 - Making Error messages
 - Fix the `-l` display format.
-- Consider a different approach for flags, as directories may have names starting with `-`.
+- Consider a different approach for flags, as directories may have names starting with `-`
