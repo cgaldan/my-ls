@@ -142,8 +142,13 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 	var maxSize, maxNlink int
 
 	if aFlag {
-		files = append(files, getFileAttributes(".", fileInfo))
-		if parentInfo, err := os.Stat("../"); err == nil {
+		dotFile := getFileAttributes(".", fileInfo)
+		files = append(files, dotFile)
+		if stat, ok := fileInfo.Sys().(*syscall.Stat_t); ok {
+			totalBlocks += int64(stat.Blocks)
+		}
+
+		if parentInfo, err := os.Stat(".."); err == nil {
 			parentFile := getFileAttributes("..", parentInfo)
 			files = append(files, parentFile)
 			if stat, ok := parentInfo.Sys().(*syscall.Stat_t); ok {
@@ -183,7 +188,6 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 
 	if lFlag {
 		fmt.Printf("total %d\n", totalBlocks/2)
-		fmt.Println(totalBlocks)
 		for _, file := range files {
 			fmt.Println(formatLongEntry(file, maxNlink, maxSize))
 		}
