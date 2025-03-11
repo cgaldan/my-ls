@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/user"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -44,6 +46,9 @@ type MyLSFiles struct {
 	Size           int64
 	ModTime        time.Time
 	Mode           fs.FileMode
+	OwnerName      string
+	GroupName      string
+	NLink          uint64
 }
 
 // GetColor returns the appropriate ANSI color code based on the file type.
@@ -109,7 +114,6 @@ func (file MyLSFiles) GetColor() string {
 // The function retrieves directory contents, filters them based on flags, sorts them,
 // and prints the results with color coding. If `RFlag` is set, it recursively lists subdirectories.
 func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
-
 	var files []MyLSFiles
 	var subDirs []string
 
@@ -124,178 +128,148 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 	}
 
 	if !fileInfo.IsDir() {
-		info, err := os.Lstat(dirName)
-		if err != nil {
-			fmt.Println("Error:", err)
-			return
-		}
-		isExec := !info.IsDir() && (info.Mode().Perm()&0o111 != 0)
-		isLink := info.Mode()&os.ModeSymlink != 0
-		isBroken := isLink && !exists(dirName)
-		isBlockDevice := info.Mode()&os.ModeDevice != 0 && info.Mode()&syscall.S_IFBLK != 0
-		isCharDevice := info.Mode()&os.ModeDevice != 0 && info.Mode()&syscall.S_IFCHR != 0
-		isSocket := info.Mode()&os.ModeSocket != 0
-		isPipe := info.Mode()&os.ModeNamedPipe != 0
-		isSetuid := info.Mode()&os.ModeSetuid != 0
-		isSetgid := info.Mode()&os.ModeSetgid != 0
-		isStickyDir := info.IsDir() && (info.Mode()&os.ModeSticky != 0)
-
-		file := MyLSFiles{
-			Name:          fileInfo.Name(),
-			IsDir:         info.IsDir(),
-			IsExec:        isExec,
-			IsLink:        isLink,
-			IsBroken:      isBroken,
-			IsBlockDevice: isBlockDevice,
-			IsCharDevice:  isCharDevice,
-			IsSocket:      isSocket,
-			IsPipe:        isPipe,
-			IsSetuid:      isSetuid,
-			IsSetgid:      isSetgid,
-			IsStickyDir:   isStickyDir,
-			Size:          info.Size(),
-			ModTime:       info.ModTime(),
-			Mode:          info.Mode(),
-		}
-
-		// If long listing is requested, format accordingly.
-		if lFlag {
-			fmt.Println(formatLongEntry(file, info))
-		} else {
-			printFiles([]MyLSFiles{file})
-		}
+		printFileDetails(dirName, fileInfo, lFlag)
 		return
 	}
 
-	myFS := os.DirFS(dirName)
-	entries, err := fs.ReadDir(myFS, ".")
+	entries, err := os.ReadDir(dirName)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
 	}
 
+	var totalBlocks int64
+	var maxSize, maxNlink int
+
 	if aFlag {
-
-		if dotInfo, err := os.Lstat(dirName); err == nil {
-			files = append(files, MyLSFiles{
-				Name:    ".",
-				IsDir:   dotInfo.IsDir(),
-				IsExec:  (dotInfo.Mode().Perm() & 0o111) != 0,
-				IsLink:  (dotInfo.Mode() & os.ModeSymlink) != 0,
-				Size:    dotInfo.Size(),
-				ModTime: dotInfo.ModTime(),
-				Mode:    dotInfo.Mode(),
-			})
-		}
-
-		if parentInfo, err := os.Lstat("../"); err == nil {
-			files = append(files, MyLSFiles{
-				Name:    "..",
-				IsDir:   parentInfo.IsDir(),
-				IsExec:  (parentInfo.Mode().Perm() & 0o111) != 0,
-				IsLink:  (parentInfo.Mode() & os.ModeSymlink) != 0,
-				Size:    parentInfo.Size(),
-				ModTime: parentInfo.ModTime(),
-				Mode:    parentInfo.Mode(),
-			})
+		files = append(files, getFileAttributes(".", fileInfo))
+		if parentInfo, err := os.Stat("../"); err == nil {
+			parentFile := getFileAttributes("..", parentInfo)
+			files = append(files, parentFile)
+			if stat, ok := parentInfo.Sys().(*syscall.Stat_t); ok {
+				totalBlocks += int64(stat.Blocks)
+			}
+			updateMaxLengths(&maxNlink, &maxSize, parentFile)
 		}
 	}
-
-	var totalBlocks int64 = 0
 
 	for _, entry := range entries {
 		fileName := entry.Name()
 		if !aFlag && strings.HasPrefix(fileName, ".") {
 			continue
 		}
-		info, err := os.Lstat(dirName + "/" + fileName)
+
+		info, err := os.Lstat(filepath.Join(dirName, fileName))
 		if err != nil {
 			continue
 		}
+
+		file := getFileAttributes(filepath.Join(dirName, fileName), info)
 		if stat, ok := info.Sys().(*syscall.Stat_t); ok {
 			totalBlocks += int64(stat.Blocks)
 		}
-
-		isExec := !info.IsDir() && (info.Mode().Perm()&0o111 != 0)
-		isLink := info.Mode()&os.ModeSymlink != 0
-		isBroken := isLink && !exists(dirName+"/"+fileName)
-		IsBlockDevice := info.Mode()&os.ModeDevice != 0 && info.Mode()&syscall.S_IFBLK != 0
-		IsCharDevice := info.Mode()&os.ModeDevice != 0 && info.Mode()&syscall.S_IFCHR != 0
-		IsSocket := info.Mode()&os.ModeSocket != 0
-		IsPipe := info.Mode()&os.ModeNamedPipe != 0
-		// IsOrphanedLink := info.Mode()&os.ModeSymlink != 0
-		IsSetuid := info.Mode()&os.ModeSetuid != 0
-		IsSetgid := info.Mode()&os.ModeSetgid != 0
-		IsStickyDir := info.Mode()&os.ModeDir != 0 && info.Mode()&os.ModeSticky != 0
-
-		files = append(files, MyLSFiles{
-			Name:          fileName,
-			IsDir:         entry.IsDir(),
-			IsExec:        isExec,
-			IsLink:        isLink,
-			IsBroken:      isBroken,
-			IsBlockDevice: IsBlockDevice,
-			IsCharDevice:  IsCharDevice,
-			IsSocket:      IsSocket,
-			IsPipe:        IsPipe,
-			// IsOrphanedLink: IsOrphanedLink,
-			IsSetuid:    IsSetuid,
-			IsSetgid:    IsSetgid,
-			IsStickyDir: IsStickyDir,
-			Size:        info.Size(),
-			ModTime:     info.ModTime(),
-			Mode:        info.Mode(),
-		})
-
+		files = append(files, file)
+		if RFlag && file.IsDir {
+			subDirs = append(subDirs, filepath.Join(dirName, file.Name))
+		}
+		updateMaxLengths(&maxNlink, &maxSize, file)
 	}
 
-	if tFlag {
-		sortByTime(files)
-	} else {
-		sortByName(files)
-	}
-
-	if rFlag {
-		reverseFiles(files)
-	}
+	sortFiles(&files, tFlag, rFlag)
 
 	if RFlag {
-		for _, file := range files {
-			if file.IsDir {
-				subDirs = append(subDirs, dirName+"/"+file.Name)
-			}
-		}
 		fmt.Println(dirName + ":")
 	}
 
 	if lFlag {
 		fmt.Printf("total %d\n", totalBlocks/2)
+		fmt.Println(totalBlocks)
 		for _, file := range files {
-			fullPath := filepath.Join(dirName, file.Name)
-			info, err := os.Lstat(fullPath)
-			if err != nil {
-				continue
-			}
-			fmt.Println(formatLongEntry(file, info))
+			fmt.Println(formatLongEntry(file, maxNlink, maxSize))
 		}
-
-	}
-
-	if !lFlag {
+	} else {
 		printFiles(files)
 	}
-
-	// for _, file := range files {
-	// 	fileName := formatFileNames(file.Name)
-	// 	fmt.Print(file.GetColor() + fileName + reset + "  ")
-	// }
-	// fmt.Println()
 
 	if RFlag {
 		for _, subDir := range subDirs {
 			fmt.Println()
 			TheMainLS(subDir, lFlag, RFlag, aFlag, rFlag, tFlag)
 		}
+	}
+}
+
+func printFileDetails(path string, info os.FileInfo, lFlag bool) {
+	file := getFileAttributes(path, info)
+	if lFlag {
+		fmt.Println(formatLongEntry(file, len(strconv.Itoa(int(file.NLink))), len(strconv.Itoa(int(file.Size)))))
+	} else {
+		printFiles([]MyLSFiles{file})
+	}
+}
+
+func updateMaxLengths(maxNlink, maxSize *int, file MyLSFiles) {
+	strNLink := strconv.Itoa(int(file.NLink))
+	strSize := strconv.Itoa(int(file.Size))
+	if *maxNlink < len(strNLink) {
+		*maxNlink = len(strNLink)
+	}
+	if *maxSize < len(strSize) {
+		*maxSize = len(strSize)
+	}
+}
+
+func sortFiles(files *[]MyLSFiles, tFlag, rFlag bool) {
+	if tFlag {
+		sortByTime(*files)
+	} else {
+		sortByName(*files)
+	}
+	if rFlag {
+		reverseFiles(*files)
+	}
+}
+
+func getFileAttributes(path string, info os.FileInfo) MyLSFiles {
+	stat, _ := info.Sys().(*syscall.Stat_t)
+	var nlink uint64 = 1
+	var uid, gid uint32
+
+	if stat != nil {
+		nlink = uint64(stat.Nlink)
+		uid = stat.Uid
+		gid = stat.Gid
+	}
+
+	ownerName := strconv.Itoa(int(uid))
+	if owner, err := user.LookupId(strconv.Itoa(int(uid))); err == nil {
+		ownerName = owner.Username
+	}
+
+	groupName := strconv.Itoa(int(gid))
+	if group, err := user.LookupGroupId(strconv.Itoa(int(gid))); err == nil {
+		groupName = group.Name
+	}
+
+	return MyLSFiles{
+		Name:          filepath.Base(path),
+		IsDir:         info.IsDir(),
+		IsExec:        !info.IsDir() && (info.Mode().Perm()&0o111 != 0),
+		IsLink:        info.Mode()&os.ModeSymlink != 0,
+		IsBroken:      info.Mode()&os.ModeSymlink != 0 && !exists(path),
+		IsBlockDevice: info.Mode()&os.ModeDevice != 0 && info.Mode()&syscall.S_IFBLK != 0,
+		IsCharDevice:  info.Mode()&os.ModeDevice != 0 && info.Mode()&syscall.S_IFCHR != 0,
+		IsSocket:      info.Mode()&os.ModeSocket != 0,
+		IsPipe:        info.Mode()&os.ModeNamedPipe != 0,
+		IsSetuid:      info.Mode()&os.ModeSetuid != 0,
+		IsSetgid:      info.Mode()&os.ModeSetgid != 0,
+		IsStickyDir:   info.IsDir() && info.Mode()&os.ModeSticky != 0,
+		Size:          info.Size(),
+		ModTime:       info.ModTime(),
+		Mode:          info.Mode(),
+		OwnerName:     ownerName,
+		GroupName:     groupName,
+		NLink:         nlink,
 	}
 }
 

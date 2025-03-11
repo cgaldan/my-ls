@@ -3,11 +3,7 @@ package myls
 import (
 	"fmt"
 	"ls/utils"
-	"os"
-	"os/user"
-	"strconv"
 	"strings"
-	"syscall"
 )
 
 func formatFileNames(fileName string) string {
@@ -23,29 +19,8 @@ func formatFileNames(fileName string) string {
 
 // formatLongEntry returns a detailed string for a file, including extra metadata.
 // It retrieves the number of links, owner, and group information from the file's syscall.Stat_t.
-func formatLongEntry(file MyLSFiles, info os.FileInfo) string {
+func formatLongEntry(file MyLSFiles, lenNLink int, lenSize int) string {
 	permission := file.Mode.String()
-
-	stat, ok := info.Sys().(*syscall.Stat_t)
-	var nlink uint64 = 1
-	var uid, gid uint32
-	if ok {
-		nlink = uint64(stat.Nlink)
-		uid = stat.Uid
-		gid = stat.Gid
-	}
-
-	owner, err := user.LookupId(strconv.Itoa(int(uid)))
-	ownerName := strconv.Itoa(int(uid))
-	if err == nil {
-		ownerName = owner.Username
-	}
-
-	group, err := user.LookupGroupId(strconv.Itoa(int(gid)))
-	groupName := strconv.Itoa(int(gid))
-	if err == nil {
-		groupName = group.Name
-	}
 
 	modTim := file.ModTime.Format("Jan 2 15:04")
 	modMonth := strings.Split(modTim, " ")[0]
@@ -56,9 +31,7 @@ func formatLongEntry(file MyLSFiles, info os.FileInfo) string {
 
 	fileName := formatFileNames(file.Name)
 
-	stringSize := 0
-
-	return fmt.Sprintf("%s %1d %s %s %*s %3s %2s %5s %s%s%s", permission, nlink, ownerName, groupName, stringSize, size, modMonth, modMonNum, modTime, file.GetColor(), fileName, reset)
+	return fmt.Sprintf("%s %*d %s %s %*s %3s %2s %5s %s%s%s", permission, lenNLink, file.NLink, file.OwnerName, file.GroupName, lenSize, size, modMonth, modMonNum, modTime, file.GetColor(), fileName, reset)
 }
 
 func padColoredString(uncolored, colored string, width int) string {
