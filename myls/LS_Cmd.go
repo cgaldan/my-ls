@@ -27,6 +27,7 @@ const (
 	bgRed    = "\033[41m"
 	bgYellow = "\033[43m"
 	bgBlue   = "\033[44m"
+	bgGreen  = "\033[42m"
 )
 
 type MyLSFiles struct {
@@ -58,18 +59,18 @@ type MyLSFiles struct {
 //   - Broken symbolic links are displayed in red.
 //   - Regular files are displayed in the default terminal color.
 func (file MyLSFiles) GetColor() string {
-	ext := strings.ToLower(filepath.Ext(file.Name))
 
-	switch ext {
-	case ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg", ".mp4":
-		return magenta
-	case ".mp3", ".wav", ".ogg", ".flac":
-		return cyan
-	case ".zip", ".tar", ".gz", ".bz2", ".rar", ".7z", ".deb", ".rpm":
-		return red
-	}
 	if file.IsBroken {
-		return red
+		return bgBlack + red
+	}
+	if file.IsStickyDir {
+		return bgGreen + black
+	}
+	if file.IsSetuid {
+		return bgRed
+	}
+	if file.IsSetgid {
+		return bgYellow + black
 	}
 	if file.IsLink {
 		return cyan
@@ -86,14 +87,16 @@ func (file MyLSFiles) GetColor() string {
 	if file.IsSocket {
 		return magenta
 	}
-	if file.IsSetuid {
-		return bgRed
-	}
-	if file.IsSetgid {
-		return bgYellow + black
-	}
-	if file.IsStickyDir {
-		return bgBlue
+
+	ext := strings.ToLower(filepath.Ext(file.Name))
+
+	switch ext {
+	case ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg", ".mp4":
+		return magenta
+	case ".mp3", ".wav", ".ogg", ".flac":
+		return cyan
+	case ".zip", ".tar", ".gz", ".bz2", ".rar", ".7z", ".deb", ".rpm":
+		return red
 	}
 	return reset
 }
@@ -183,7 +186,7 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 	sortFiles(&files, tFlag, rFlag)
 
 	if RFlag {
-		fmt.Println(dirName + ":")
+		printDirHeader(dirName)
 	}
 
 	if lFlag {

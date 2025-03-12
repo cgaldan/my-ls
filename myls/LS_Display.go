@@ -3,6 +3,7 @@ package myls
 import (
 	"fmt"
 	"ls/utils"
+	"path/filepath"
 	"strings"
 )
 
@@ -80,4 +81,17 @@ func printFiles(files []MyLSFiles) {
 		}
 		fmt.Println()
 	}
+}
+
+func printDirHeader(dirName string) {
+	var header string
+
+	if dirName == "." {
+		header = "."
+	} else if !filepath.IsAbs(dirName) && !strings.HasPrefix(dirName, "./") {
+		header = "./" + dirName
+	} else {
+		header = dirName
+	}
+	fmt.Println(header + ":")
 }

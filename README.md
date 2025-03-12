@@ -24,5 +24,5 @@ To run this program you need to install **golang**
     go run . <flag> <filename>
 
 # ToDo list
-- fixing colors
+- Treat filenames that have symbols properly
 - Making Error messages
