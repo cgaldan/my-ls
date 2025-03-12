@@ -20,9 +20,16 @@ import (
 //   - `path` (string): The specified directory path, or an empty string if none is provided (defaults to `.`).
 //   - `lFlag`, `RFlag`, `aFlag`, `rFlag`, `tFlag` (bool): Boolean values representing whether each flag is set.
 func Args() (path string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
+	endOfFlags := false
 
 	for _, arg := range os.Args[1:] {
-		if strings.HasPrefix(arg, "-") {
+		// If we encounter the double-dash, stop processing flags.
+		if arg == "--" {
+			endOfFlags = true
+			continue
+		}
+
+		if !endOfFlags && strings.HasPrefix(arg, "-") && arg != "-" {
 			if strings.Contains(arg, "a") {
 				aFlag = true
 			}

@@ -25,6 +25,4 @@ To run this program you need to install **golang**
 
 # ToDo list
 - fixing colors
-- Accept files even if not a directory
 - Making Error messages
-- Consider a different approach for flags, as directories may have names starting with `-`.
