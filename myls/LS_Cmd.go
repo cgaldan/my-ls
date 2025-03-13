@@ -42,7 +42,6 @@ type MyLSFiles struct {
 	IsCharDevice    bool
 	IsSocket        bool
 	IsPipe          bool
-	IsOrphanedLink  bool
 	IsSetuid        bool
 	IsSetgid        bool
 	IsStickyDir     bool
@@ -66,11 +65,14 @@ func (file MyLSFiles) GetColor() string {
 	if file.IsBroken {
 		return bgBlack + red
 	}
+	if file.IsStickyDir && file.IsOtherWritable {
+		return bgGreen + black
+	}
 	if file.IsOtherWritable {
 		return bgGreen + blue2
 	}
 	if file.IsStickyDir {
-		return bgGreen + black
+		return bgBlue
 	}
 	if file.IsSetuid {
 		return bgRed
@@ -291,7 +293,7 @@ func getFileAttributes(path string, info os.FileInfo) MyLSFiles {
 		IsSetuid:        info.Mode()&os.ModeSetuid != 0,
 		IsSetgid:        info.Mode()&os.ModeSetgid != 0,
 		IsStickyDir:     info.IsDir() && info.Mode()&os.ModeSticky != 0,
-		IsOtherWritable: info.IsDir() && info.Mode()&0o002 != 0 && info.Mode()&os.ModeSticky == 0,
+		IsOtherWritable: info.IsDir() && info.Mode()&0o002 != 0,
 		Size:            info.Size(),
 		ModTime:         info.ModTime(),
 		Mode:            info.Mode(),

@@ -7,14 +7,22 @@ import (
 	"strings"
 )
 
+var punctuationMarks = []string{
+	"!", "\"", "#", "$", "%", "&", "(", ")", "*", "+", ",",
+	"/", ":", ";", "<", "=", ">", "?", "@", "[", "\\", "]", "^", "`", "{", "|", "}", "~", " ",
+}
+
 func formatFileNames(fileName string) string {
-	if strings.Contains(fileName, "'") { // We have to add more punctuation marks here
+	if strings.Contains(fileName, "'") {
 		fileName = fmt.Sprintf("\"%s\"", fileName)
 	}
-	if strings.Contains(fileName, " ") {
-		fileName = fmt.Sprintf("'%s'", fileName)
-	}
 
+	for _, mark := range punctuationMarks {
+		if strings.Contains(fileName, mark) {
+			fileName = fmt.Sprintf("'%s'", fileName)
+			break
+		}
+	}
 	return fileName
 }
 
@@ -55,9 +63,7 @@ func printFiles(files []MyLSFiles) {
 	var allnames []string
 	for i, file := range files {
 		displayName := file.Name
-		if strings.Contains(file.Name, " ") {
-			displayName = fmt.Sprintf("'%s'", file.Name)
-		}
+		displayName = formatFileNames(displayName)
 		names[i] = displayName
 		coloredNames[i] = file.GetColor() + displayName + reset
 		names[i] = displayName
