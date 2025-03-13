@@ -14,12 +14,14 @@ import (
 
 const (
 	blue    = "\033[1;34m" // Bright Blue for directories
+	blue2   = "\033[34m"   // Blue
 	green   = "\033[1;32m" // Bright Green for executable files
-	cyan    = "\033[1;36m" // Bright Cyan for symbolic links
+	cyan    = "\033[36m"   // Cyan for audio files
+	cyan2   = "\033[1;36m" // Bright Cyan for symbolic links
 	red     = "\033[1;31m" // Bright Red for broken symbolic links
 	magenta = "\033[1;35m" // Bright Magenta for image files
 	yellow  = "\033[1;33m" // Bright Yellow
-	black   = "\033[1;30m" // Bright Black
+	black   = "\033[30m"   // Black
 	reset   = "\033[0m"    // Resets to the default terminal color
 
 	// Background colors
@@ -31,25 +33,26 @@ const (
 )
 
 type MyLSFiles struct {
-	Name           string
-	IsDir          bool
-	IsExec         bool
-	IsLink         bool
-	IsBroken       bool
-	IsBlockDevice  bool
-	IsCharDevice   bool
-	IsSocket       bool
-	IsPipe         bool
-	IsOrphanedLink bool
-	IsSetuid       bool
-	IsSetgid       bool
-	IsStickyDir    bool
-	Size           int64
-	ModTime        time.Time
-	Mode           fs.FileMode
-	OwnerName      string
-	GroupName      string
-	NLink          uint64
+	Name            string
+	IsDir           bool
+	IsExec          bool
+	IsLink          bool
+	IsBroken        bool
+	IsBlockDevice   bool
+	IsCharDevice    bool
+	IsSocket        bool
+	IsPipe          bool
+	IsOrphanedLink  bool
+	IsSetuid        bool
+	IsSetgid        bool
+	IsStickyDir     bool
+	IsOtherWritable bool
+	Size            int64
+	ModTime         time.Time
+	Mode            fs.FileMode
+	OwnerName       string
+	GroupName       string
+	NLink           uint64
 }
 
 // GetColor returns the appropriate ANSI color code based on the file type.
@@ -63,6 +66,9 @@ func (file MyLSFiles) GetColor() string {
 	if file.IsBroken {
 		return bgBlack + red
 	}
+	if file.IsOtherWritable {
+		return bgGreen + blue2
+	}
 	if file.IsStickyDir {
 		return bgGreen + black
 	}
@@ -73,7 +79,7 @@ func (file MyLSFiles) GetColor() string {
 		return bgYellow + black
 	}
 	if file.IsLink {
-		return cyan
+		return cyan2
 	}
 	if file.IsDir {
 		return blue
@@ -91,11 +97,25 @@ func (file MyLSFiles) GetColor() string {
 	ext := strings.ToLower(filepath.Ext(file.Name))
 
 	switch ext {
-	case ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg", ".mp4":
+	case // Image files
+		".jpg", ".jpeg", ".gif", ".bmp", ".pbm", ".pgm", ".ppm", ".tga",
+		".xbm", ".xpm", ".tif", ".tiff", ".png", ".svg", ".svgz", ".mng",
+		".pcx",
+		// Video files
+		".mov", ".mpg", ".mpeg", ".m2v", ".mkv", ".webm", ".ogm", ".mp4", ".m4v",
+		".mp4v", ".vob", ".qt", ".nuv", ".wmv", ".asf", ".rm", ".rmvb",
+		".flc", ".avi", ".fli", ".flv", ".gl", ".dl", ".xcf", ".xwd",
+		".yuv", ".cgm", ".emf", ".axv", ".anx", ".ogv", ".ogx":
 		return magenta
-	case ".mp3", ".wav", ".ogg", ".flac":
+	case // audio files
+		".aac", ".au", ".flac", ".mid", ".midi", ".mka", ".mp3", ".mpc",
+		".ogg", ".ra", ".wav", ".axa", ".oga", ".spx", ".xspf":
 		return cyan
-	case ".zip", ".tar", ".gz", ".bz2", ".rar", ".7z", ".deb", ".rpm":
+	case // compressed files
+		".tar", ".tgz", ".arj", ".taz", ".lzh", ".lzma", ".tlz", ".txz",
+		".zip", ".z", ".Z", ".dz", ".gz", ".lz", ".xz", ".bz2", ".bz", ".tbz", ".tbz2",
+		".tz", ".deb", ".rpm", ".jar", ".rar", ".ace", ".zoo", ".cpio",
+		".7z", ".rz", ".cab", ".war", ".ear", ".sar":
 		return red
 	}
 	return reset
@@ -259,24 +279,25 @@ func getFileAttributes(path string, info os.FileInfo) MyLSFiles {
 	}
 
 	return MyLSFiles{
-		Name:          filepath.Base(path),
-		IsDir:         info.IsDir(),
-		IsExec:        !info.IsDir() && (info.Mode().Perm()&0o111 != 0),
-		IsLink:        info.Mode()&os.ModeSymlink != 0,
-		IsBroken:      info.Mode()&os.ModeSymlink != 0 && !exists(path),
-		IsBlockDevice: info.Mode()&os.ModeDevice != 0 && info.Mode()&syscall.S_IFBLK != 0,
-		IsCharDevice:  info.Mode()&os.ModeDevice != 0 && info.Mode()&syscall.S_IFCHR != 0,
-		IsSocket:      info.Mode()&os.ModeSocket != 0,
-		IsPipe:        info.Mode()&os.ModeNamedPipe != 0,
-		IsSetuid:      info.Mode()&os.ModeSetuid != 0,
-		IsSetgid:      info.Mode()&os.ModeSetgid != 0,
-		IsStickyDir:   info.IsDir() && info.Mode()&os.ModeSticky != 0,
-		Size:          info.Size(),
-		ModTime:       info.ModTime(),
-		Mode:          info.Mode(),
-		OwnerName:     ownerName,
-		GroupName:     groupName,
-		NLink:         nlink,
+		Name:            filepath.Base(path),
+		IsDir:           info.IsDir(),
+		IsExec:          !info.IsDir() && (info.Mode().Perm()&0o111 != 0),
+		IsLink:          info.Mode()&os.ModeSymlink != 0,
+		IsBroken:        info.Mode()&os.ModeSymlink != 0 && !exists(path),
+		IsBlockDevice:   info.Mode()&os.ModeDevice != 0 && info.Mode()&syscall.S_IFBLK != 0,
+		IsCharDevice:    info.Mode()&os.ModeDevice != 0 && info.Mode()&syscall.S_IFCHR != 0,
+		IsSocket:        info.Mode()&os.ModeSocket != 0,
+		IsPipe:          info.Mode()&os.ModeNamedPipe != 0,
+		IsSetuid:        info.Mode()&os.ModeSetuid != 0,
+		IsSetgid:        info.Mode()&os.ModeSetgid != 0,
+		IsStickyDir:     info.IsDir() && info.Mode()&os.ModeSticky != 0,
+		IsOtherWritable: info.IsDir() && info.Mode()&0o002 != 0 && info.Mode()&os.ModeSticky == 0,
+		Size:            info.Size(),
+		ModTime:         info.ModTime(),
+		Mode:            info.Mode(),
+		OwnerName:       ownerName,
+		GroupName:       groupName,
+		NLink:           nlink,
 	}
 }
 
