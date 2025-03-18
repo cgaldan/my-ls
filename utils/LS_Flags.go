@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 	"strings"
 )
@@ -19,10 +20,24 @@ import (
 // Returns:
 //   - `path` (string): The specified directory path, or an empty string if none is provided (defaults to `.`).
 //   - `lFlag`, `RFlag`, `aFlag`, `rFlag`, `tFlag` (bool): Boolean values representing whether each flag is set.
-func Args() (path string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
+func Args() (paths []string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 	endOfFlags := false
+	flags := "-aRtlr"
 
 	for _, arg := range os.Args[1:] {
+
+		if arg == "--help" {
+			fmt.Println("Usage: ./myls [OPTION]... [FILE]...")
+			fmt.Println("List information about the FILEs (the current directory by default).")
+			fmt.Println("Options:")
+			fmt.Println("  -a  : Includes hidden files.")
+			fmt.Println("  -R  : Enables recursive listing.")
+			fmt.Println("  -t  : Sorts files by modification time.")
+			fmt.Println("  -l  : Enables long listing format with detailed file information.")
+			fmt.Println("  -r  : Reverses the sorting order.")
+			os.Exit(0)
+		}
+
 		// If we encounter the double-dash, stop processing flags.
 		if arg == "--" {
 			endOfFlags = true
@@ -30,6 +45,13 @@ func Args() (path string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 		}
 
 		if !endOfFlags && strings.HasPrefix(arg, "-") && arg != "-" {
+			for _, r := range arg {
+				if !strings.ContainsAny(flags, string(r)) {
+					fmt.Printf("myls: invalid option -- '%s'\n", string(r))
+					fmt.Println("Try '--help' flag for more information.")
+					os.Exit(0)
+				}
+			}
 			if strings.Contains(arg, "a") {
 				aFlag = true
 			}
@@ -46,7 +68,7 @@ func Args() (path string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 				rFlag = true
 			}
 		} else {
-			path = arg
+			paths = append(paths, arg)
 		}
 	}
 

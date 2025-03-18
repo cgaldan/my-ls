@@ -1,13 +1,23 @@
 package main
 
 import (
-	"ls/myls"
+	"fmt"
+	"ls/logic"
 	"ls/utils"
 )
 
 func main() {
-	path, lFlag, RFlag, aFlag, rFlag, tFlag := utils.Args()
+	var dir string
+	paths, lFlag, RFlag, aFlag, rFlag, tFlag := utils.Args()
 
-	myls.TheMainLS(path, lFlag, RFlag, aFlag, rFlag, tFlag)
+	if len(paths) > 1 {
+		for _, path := range paths {
+			fmt.Printf("%s:\n", path)
+			logic.TheMainLS(path, lFlag, RFlag, aFlag, rFlag, tFlag)
+			fmt.Println()
+		}
+		return
+	}
 
+	logic.TheMainLS(dir, lFlag, RFlag, aFlag, rFlag, tFlag)
 }
