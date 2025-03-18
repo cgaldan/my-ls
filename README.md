@@ -17,11 +17,15 @@ To run this program you need to install **golang**
 1. Clone the repository :
     ```bash
     git clone https://platform.zone01.gr/git/cgkaldan/my-ls.git
-2. Run the program :
-- **flag :** You can run the program with the flags provided. (optional)
-- **filename :** You can run the program with a name of a file that exists in the current directory. (optional)
+2. Build the program :
     ```go
-    go run . <flag> <filename>
-
+   make build
+   ```
+3. Run the program :
+- **flag :** You can run the program with the flags provided. (optional)
+- **filenames :** You can run the program with a name of a file that exists in the current directory. (optional)
+    ```go
+    ./myls [FLAGS]... [FILENAMES]...
+    ```
 # ToDo list
 - Making Error messages
