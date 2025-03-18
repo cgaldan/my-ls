@@ -146,16 +146,6 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 		dirName = "."
 	}
 
-	entries, err := os.ReadDir(dirName)
-	if err != nil {
-		if os.IsNotExist(err) {
-			fmt.Printf("myls: cannot access '%s': No such file or direcory\n", dirName)
-		} else {
-			fmt.Println("Error:", err)
-		}
-		return
-	}
-
 	fileInfo, err := os.Stat(dirName)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -168,6 +158,16 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 
 	if !fileInfo.IsDir() {
 		printFileDetails(dirName, fileInfo, lFlag)
+		return
+	}
+
+	entries, err := os.ReadDir(dirName)
+	if err != nil {
+		if os.IsNotExist(err) {
+			fmt.Printf("myls: cannot access '%s': No such file or direcory\n", dirName)
+		} else {
+			fmt.Println("Error:", err)
+		}
 		return
 	}
 
