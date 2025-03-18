@@ -20,7 +20,7 @@ import (
 // Returns:
 //   - `path` (string): The specified directory path, or an empty string if none is provided (defaults to `.`).
 //   - `lFlag`, `RFlag`, `aFlag`, `rFlag`, `tFlag` (bool): Boolean values representing whether each flag is set.
-func Args() (paths []string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
+func Args() (path string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 	endOfFlags := false
 	flags := "-aRtlr"
 
@@ -68,7 +68,7 @@ func Args() (paths []string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 				rFlag = true
 			}
 		} else {
-			paths = append(paths, arg)
+			path = arg
 		}
 	}
 
