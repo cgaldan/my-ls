@@ -149,9 +149,9 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 	fileInfo, err := os.Stat(dirName)
 	if err != nil {
 		if os.IsNotExist(err) {
-			fmt.Printf("myls: cannot access '%s': No such file or direcory\n", dirName)
+			fmt.Printf("myls: cannot access '%s': No such file or direcory", dirName)
 		} else {
-			fmt.Println("Error:", err)
+			fmt.Print("Error:", err)
 		}
 		return
 	}

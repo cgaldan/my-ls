@@ -47,8 +47,8 @@ func Args() (paths []string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 		if !endOfFlags && strings.HasPrefix(arg, "-") && arg != "-" {
 			for _, r := range arg {
 				if !strings.ContainsAny(flags, string(r)) {
-					fmt.Printf("myls: invalid option -- '%s'\n", string(r))
-					fmt.Println("Try '--help' flag for more information.")
+					fmt.Printf("myls: unrecognized option '%s'\n", arg)
+					fmt.Println("Try './myls --help' for more information.")
 					os.Exit(0)
 				}
 			}

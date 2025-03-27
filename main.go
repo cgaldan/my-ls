@@ -22,15 +22,20 @@ func main() {
 				return
 			}
 			if fileInfo.IsDir() {
+				if i != 0 {
+					fmt.Println()
+					fmt.Println()
+				}
 				if !RFlag {
 					fmt.Println(path + ":")
 				}
 
 				logic.TheMainLS(path, lFlag, RFlag, aFlag, rFlag, tFlag)
+				fmt.Println()
 			} else {
 				logic.TheMainLS(path, lFlag, RFlag, aFlag, rFlag, tFlag)
 			}
-			if i != len(paths)-1 {
+			if i == len(paths)-1 && !fileInfo.IsDir() {
 				fmt.Println()
 			}
 		}
@@ -39,8 +44,10 @@ func main() {
 
 	if len(paths) == 1 {
 		logic.TheMainLS(paths[0], lFlag, RFlag, aFlag, rFlag, tFlag)
+		fmt.Println()
 		return
 	}
 
 	logic.TheMainLS("", lFlag, RFlag, aFlag, rFlag, tFlag)
+	fmt.Println()
 }

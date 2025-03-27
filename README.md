@@ -28,4 +28,4 @@ To run this program you need to install **golang**
     ./myls [FLAGS]... [FILENAMES]...
     ```
 # ToDo list
-- Making Error messages
+- problem with format and Println()

@@ -85,7 +85,6 @@ func printFiles(files []MyLSFiles) {
 				fmt.Print(padColoredString(names[index], coloredNames[index], widthOfColumns[column]+2))
 			}
 		}
-		fmt.Println()
 	}
 }
 
