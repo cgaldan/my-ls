@@ -164,9 +164,9 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 	entries, err := os.ReadDir(dirName)
 	if err != nil {
 		if os.IsNotExist(err) {
-			fmt.Printf("myls: cannot access '%s': No such file or direcory\n", dirName)
+			fmt.Printf("myls: cannot access '%s': No such file or direcory", dirName)
 		} else {
-			fmt.Println("Error:", err)
+			fmt.Print("Error:", err)
 		}
 		return
 	}
@@ -181,8 +181,8 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 			totalBlocks += int64(stat.Blocks)
 		}
 
-		if parentInfo, err := os.Stat(".."); err == nil {
-			parentFile := getFileAttributes("..", parentInfo)
+		if parentInfo, err := os.Stat(dirName + "/.."); err == nil {
+			parentFile := getFileAttributes(dirName+"/..", parentInfo)
 			files = append(files, parentFile)
 			if stat, ok := parentInfo.Sys().(*syscall.Stat_t); ok {
 				totalBlocks += int64(stat.Blocks)
@@ -221,8 +221,11 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 
 	if lFlag {
 		fmt.Printf("total %d\n", totalBlocks/2)
-		for _, file := range files {
-			fmt.Println(formatLongEntry(file, maxNlink, maxSize))
+		for i, file := range files {
+			fmt.Print(formatLongEntry(file, maxNlink, maxSize))
+			if i != len(files)-1 {
+				fmt.Println()
+			}
 		}
 	} else {
 		printFiles(files)
@@ -239,7 +242,7 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 func printFileDetails(path string, info os.FileInfo, lFlag bool) {
 	file := getFileAttributes(path, info)
 	if lFlag {
-		fmt.Println(formatLongEntry(file, len(strconv.Itoa(int(file.NLink))), len(strconv.Itoa(int(file.Size)))))
+		fmt.Print(formatLongEntry(file, len(strconv.Itoa(int(file.NLink))), len(strconv.Itoa(int(file.Size))))) ////////////////////////////
 	} else {
 		printFiles([]MyLSFiles{file})
 	}

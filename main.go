@@ -19,11 +19,10 @@ func main() {
 				} else {
 					fmt.Println("Error:", err)
 				}
-				return
+				continue
 			}
 			if fileInfo.IsDir() {
 				if i != 0 {
-					fmt.Println()
 					fmt.Println()
 				}
 				if !RFlag {
@@ -34,9 +33,9 @@ func main() {
 				fmt.Println()
 			} else {
 				logic.TheMainLS(path, lFlag, RFlag, aFlag, rFlag, tFlag)
-			}
-			if i == len(paths)-1 && !fileInfo.IsDir() {
-				fmt.Println()
+				if i == len(paths)-1 || lFlag {
+					fmt.Println()
+				}
 			}
 		}
 		return
