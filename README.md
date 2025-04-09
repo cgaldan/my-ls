@@ -28,4 +28,4 @@ To run this program you need to install **golang**
     ./myls [FLAGS]... [FILENAMES]...
     ```
 # ToDo list
-- problem with format and Println()
+- Fixing dir headers format

@@ -123,6 +123,61 @@ func (file MyLSFiles) GetColor() string {
 	return reset
 }
 
+func ProcessPaths(paths []string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
+	var filePaths []string
+	var dirPaths []string
+
+	// Separate files and directories.
+	for _, path := range paths {
+		info, err := os.Stat(path)
+		if err != nil {
+			// For simplicity, print error and skip that path.
+			fmt.Fprintf(os.Stderr, "myls: cannot access '%s': %v\n", path, err)
+			continue
+		}
+		if info.IsDir() {
+			dirPaths = append(dirPaths, path)
+		} else {
+			filePaths = append(filePaths, path)
+		}
+	}
+
+	// Process files: Print them together in one block.
+	if len(filePaths) > 0 {
+		// If you want to support sorting files similarly to how you do for directories,
+		// you could convert them to a slice of your MyLSFiles and sort them.
+		for i, file := range filePaths {
+			fileInfo, err := os.Stat(file)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "myls: error reading file '%s': %v\n", file, err)
+				continue
+			}
+			// Use your existing helper function for printing file details.
+			printFileDetails(file, fileInfo, lFlag)
+			if i == len(filePaths)-1 && !lFlag {
+				fmt.Println()
+			}
+		}
+		// If there are directories also, separate the file block from directories with a blank line.
+		if len(dirPaths) > 0 {
+			fmt.Println()
+		}
+	}
+
+	// Process directories
+	for i, dir := range dirPaths {
+		// If more than one path is provided, print a header to mimic ls behavior.
+		// (You can also check that there's more than one directory.)
+		if len(paths) > 1 && !RFlag {
+			fmt.Printf("%s:\n", dir)
+		}
+		TheMainLS(dir, lFlag, RFlag, aFlag, rFlag, tFlag)
+		if i != len(dirPaths)-1 {
+			fmt.Println()
+		}
+	}
+}
+
 // TheMainLS lists directory contents similar to the Unix `ls` command.
 // It supports various flags for additional functionality:
 //
@@ -227,8 +282,10 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 				fmt.Println()
 			}
 		}
+		fmt.Println() //////////////////////////////////////////////
 	} else {
 		printFiles(files)
+		fmt.Println() ////////////////////////////////////////
 	}
 
 	if RFlag {
@@ -242,9 +299,10 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 func printFileDetails(path string, info os.FileInfo, lFlag bool) {
 	file := getFileAttributes(path, info)
 	if lFlag {
-		fmt.Print(formatLongEntry(file, len(strconv.Itoa(int(file.NLink))), len(strconv.Itoa(int(file.Size))))) ////////////////////////////
+		fmt.Println(formatLongEntry(file, len(strconv.Itoa(int(file.NLink))), len(strconv.Itoa(int(file.Size))))) ////////////////////////////
 	} else {
 		printFiles([]MyLSFiles{file})
+		// fmt.Println() //////////////////////////////////////
 	}
 }
 
