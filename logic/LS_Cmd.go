@@ -37,6 +37,8 @@ type MyLSFiles struct {
 	IsDir           bool
 	IsExec          bool
 	IsLink          bool
+	LinkTarget      string
+	TargetFile      *MyLSFiles
 	IsBroken        bool
 	IsBlockDevice   bool
 	IsCharDevice    bool
@@ -61,7 +63,6 @@ type MyLSFiles struct {
 //   - Broken symbolic links are displayed in red.
 //   - Regular files are displayed in the default terminal color.
 func (file MyLSFiles) GetColor() string {
-
 	if file.IsBroken {
 		return bgBlack + red
 	}
@@ -201,7 +202,7 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 		dirName = "."
 	}
 
-	fileInfo, err := os.Stat(dirName)
+	fileInfo, err := os.Lstat(dirName)
 	if err != nil {
 		if os.IsNotExist(err) {
 			fmt.Printf("myls: cannot access '%s': No such file or direcory", dirName)
@@ -349,14 +350,32 @@ func getFileAttributes(path string, info os.FileInfo) MyLSFiles {
 		groupName = group.Name
 	}
 
+	var targetFile *MyLSFiles
+	var targetPath string
+	var err error
+	if info.Mode()&os.ModeSymlink != 0 {
+		targetPath, err = os.Readlink(path)
+		if err == nil {
+			absTarget := filepath.Join(filepath.Dir(path), targetPath)
+
+			if targetInfo, err := os.Lstat(absTarget); err == nil {
+
+				tf := getFileAttributes(absTarget, targetInfo)
+				targetFile = &tf
+			}
+		}
+	}
+
 	return MyLSFiles{
 		Name:            filepath.Base(path),
 		IsDir:           info.IsDir(),
 		IsExec:          !info.IsDir() && (info.Mode().Perm()&0o111 != 0),
 		IsLink:          info.Mode()&os.ModeSymlink != 0,
+		LinkTarget:      targetPath,
+		TargetFile:      targetFile,
 		IsBroken:        info.Mode()&os.ModeSymlink != 0 && !exists(path),
-		IsBlockDevice:   info.Mode()&os.ModeDevice != 0 && info.Mode()&syscall.S_IFBLK != 0,
-		IsCharDevice:    info.Mode()&os.ModeDevice != 0 && info.Mode()&syscall.S_IFCHR != 0,
+		IsBlockDevice:   info.Mode()&os.ModeType == os.ModeDevice,
+		IsCharDevice:    info.Mode()&os.ModeType == (os.ModeDevice | os.ModeCharDevice),
 		IsSocket:        info.Mode()&os.ModeSocket != 0,
 		IsPipe:          info.Mode()&os.ModeNamedPipe != 0,
 		IsSetuid:        info.Mode()&os.ModeSetuid != 0,

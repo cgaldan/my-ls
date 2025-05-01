@@ -40,7 +40,16 @@ func formatLongEntry(file MyLSFiles, lenNLink int, lenSize int) string {
 
 	fileName := formatFileNames(file.Name)
 
-	return fmt.Sprintf("%s %*d %s %s %*s %3s %2s %5s %s%s%s", permission, lenNLink, file.NLink, file.OwnerName, file.GroupName, lenSize, size, modMonth, modMonNum, modTime, file.GetColor(), fileName, reset)
+	fileColor := file.GetColor()
+	if file.IsLink {
+		targetColor := reset
+		if file.TargetFile != nil {
+			targetColor = file.TargetFile.GetColor()
+		}
+		fileName = fmt.Sprintf("%s%s%s -> %s%s%s", fileColor, fileName, reset, targetColor, file.LinkTarget, reset)
+	}
+
+	return fmt.Sprintf("%s %*d %s %s %*s %3s %2s %5s %s%s%s", permission, lenNLink, file.NLink, file.OwnerName, file.GroupName, lenSize, size, modMonth, modMonNum, modTime, fileColor, fileName, reset)
 }
 
 func padColoredString(uncolored, colored string, width int) string {

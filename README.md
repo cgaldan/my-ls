@@ -28,4 +28,15 @@ To run this program you need to install **golang**
     ./myls [FLAGS]... [FILENAMES]...
     ```
 # ToDo list
-- Fixing dir headers format
+- Fixing dir headers format with -R flag
+- check -Ra format
+- Delete \n if folder is empty
+- Sorting files when multi arguments 
+
+# Audit fails notes
+- Run both my-ls and the system command ls with the flag: "-l /usr/bin".
+    - Some files need years instead of hours
+    - Setgid setuid and symbolic link files long-entry format on licences
+
+- Run both my-ls and the system command ls with the arguments: "-la /dev"
+    - Long entries format for block and character devices
