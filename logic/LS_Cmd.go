@@ -42,6 +42,8 @@ type MyLSFiles struct {
 	IsBroken        bool
 	IsBlockDevice   bool
 	IsCharDevice    bool
+	MajorNumber     uint32
+	MinorNumber     uint32
 	IsSocket        bool
 	IsPipe          bool
 	IsSetuid        bool
@@ -277,8 +279,9 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 
 	if lFlag {
 		fmt.Printf("total %d\n", totalBlocks/2)
+		maxOwner, maxGroup, maxSize := calculateMaxWidth(files)
 		for i, file := range files {
-			fmt.Print(formatLongEntry(file, maxNlink, maxSize))
+			fmt.Print(formatLongEntry(file, maxNlink, maxOwner, maxGroup, maxSize))
 			if i != len(files)-1 {
 				fmt.Println()
 			}
@@ -286,7 +289,9 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 		fmt.Println() //////////////////////////////////////////////
 	} else {
 		printFiles(files)
-		fmt.Println() ////////////////////////////////////////
+		if len(files) > 0 {
+			fmt.Println() ////////////////////////////////////////
+		}
 	}
 
 	if RFlag {
@@ -300,7 +305,7 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 func printFileDetails(path string, info os.FileInfo, lFlag bool) {
 	file := getFileAttributes(path, info)
 	if lFlag {
-		fmt.Println(formatLongEntry(file, len(strconv.Itoa(int(file.NLink))), len(strconv.Itoa(int(file.Size))))) ////////////////////////////
+		fmt.Println(formatLongEntry(file, len(strconv.Itoa(int(file.NLink))), len(strconv.Itoa(int(file.Size))), len(file.OwnerName), len(file.GroupName))) ////////////////////////////
 	} else {
 		printFiles([]MyLSFiles{file})
 		// fmt.Println() //////////////////////////////////////
@@ -316,6 +321,30 @@ func updateMaxLengths(maxNlink, maxSize *int, file MyLSFiles) {
 	if *maxSize < len(strSize) {
 		*maxSize = len(strSize)
 	}
+}
+
+func calculateMaxWidth(files []MyLSFiles) (maxOwner, maxGroup, maxSize int) {
+	for _, file := range files {
+		if len(file.OwnerName) > maxOwner {
+			maxOwner = len(file.OwnerName)
+		}
+		if len(file.GroupName) > maxGroup {
+			maxGroup = len(file.GroupName)
+		}
+
+		var sizeField string
+		if file.IsBlockDevice || file.IsCharDevice {
+			sizeField = fmt.Sprintf("%3d, %3d", file.MajorNumber, file.MinorNumber)
+		} else {
+			sizeField = fmt.Sprintf("%d", file.Size)
+		}
+
+		if len(sizeField) > maxSize {
+			maxSize = len(sizeField)
+		}
+	}
+
+	return maxOwner, maxGroup, maxSize
 }
 
 func sortFiles(files *[]MyLSFiles, tFlag, rFlag bool) {
@@ -366,6 +395,12 @@ func getFileAttributes(path string, info os.FileInfo) MyLSFiles {
 		}
 	}
 
+	var major, minor uint32
+	if stat != nil {
+		major = uint32((stat.Rdev >> 8) & 0xFF) // Linux/Unix specific
+		minor = uint32(stat.Rdev & 0xFF)
+	}
+
 	return MyLSFiles{
 		Name:            filepath.Base(path),
 		IsDir:           info.IsDir(),
@@ -376,6 +411,8 @@ func getFileAttributes(path string, info os.FileInfo) MyLSFiles {
 		IsBroken:        info.Mode()&os.ModeSymlink != 0 && !exists(path),
 		IsBlockDevice:   info.Mode()&os.ModeType == os.ModeDevice,
 		IsCharDevice:    info.Mode()&os.ModeType == (os.ModeDevice | os.ModeCharDevice),
+		MajorNumber:     major,
+		MinorNumber:     minor,
 		IsSocket:        info.Mode()&os.ModeSocket != 0,
 		IsPipe:          info.Mode()&os.ModeNamedPipe != 0,
 		IsSetuid:        info.Mode()&os.ModeSetuid != 0,
