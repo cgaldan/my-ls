@@ -58,6 +58,22 @@ type MyLSFiles struct {
 	NLink           uint64
 }
 
+var insensitiveLocales = map[string]bool{
+	"en_us.utf8": true,
+	"en_gb.utf8": true,
+	"de_de.utf8": true,
+	"fr_fr.utf8": true,
+	"es_es.utf8": true,
+	"it_it.utf8": true,
+	"nl_nl.utf8": true,
+	"pt_br.utf8": true,
+	"pt_pt.utf8": true,
+	"ru_ru.utf8": true,
+	"zh_cn.utf8": true,
+	"zh_tw.utf8": true,
+	"ja_jp.utf8": true,
+}
+
 // GetColor returns the appropriate ANSI color code based on the file type.
 //   - Directories are displayed in blue.
 //   - Executable files are displayed in green.
@@ -348,7 +364,11 @@ func calculateMaxWidth(files []MyLSFiles) (maxOwner, maxGroup, maxSize int) {
 }
 
 func sortFiles(files *[]MyLSFiles, tFlag, rFlag bool) {
-	if tFlag {
+	caseSensitive := isCaseSensitiveSort()
+
+	if caseSensitive {
+		sortByNameCaseSensitive(*files)
+	} else if tFlag {
 		sortByTime(*files)
 	} else {
 		sortByName(*files)
@@ -441,6 +461,17 @@ func sortByName(files []MyLSFiles) {
 	}
 }
 
+func sortByNameCaseSensitive(files []MyLSFiles) {
+	n := len(files)
+	for i := 0; i < n-1; i++ {
+		for j := 0; j < n-i-1; j++ {
+			if files[j].Name > files[j+1].Name {
+				files[j], files[j+1] = files[j+1], files[j]
+			}
+		}
+	}
+}
+
 // sortByTime sorts the given slice of MyLSFiles by modification time in descending order,
 // so that the most recently modified files appear first.
 // It also uses a bubble sort algorithm for ordering.
@@ -462,6 +493,23 @@ func reverseFiles(files []MyLSFiles) {
 	for i := 0; i < n/2; i++ {
 		files[i], files[n-1-i] = files[n-1-i], files[i]
 	}
+}
+
+func isCaseSensitiveSort() bool {
+	locale := strings.ToLower(os.Getenv("LC_COLLATE"))
+	if locale == "" {
+		locale = strings.ToLower(os.Getenv("LANG"))
+	}
+
+	if insensitiveLocales[locale] {
+		return false
+	}
+
+	if strings.HasPrefix(locale, "C") || strings.HasPrefix(locale, "POSIX") {
+		return true
+	}
+
+	return true
 }
 
 // exists checks whether a file or directory exists at the given path.
