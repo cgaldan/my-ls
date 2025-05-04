@@ -29,7 +29,7 @@ func formatFileNames(fileName string) string {
 
 // formatLongEntry returns a detailed string for a file, including extra metadata.
 // It retrieves the number of links, owner, and group information from the file's syscall.Stat_t.
-func formatLongEntry(file MyLSFiles, lenNLink int, maxOwner, maxGroup, maxSize int) string {
+func formatLongEntry(file MyLSFiles, lenNLink int, maxOwner, maxGroup, maxSize, maxMajor, maxMinor int) string {
 	permission := getPermission(file)
 
 	modTime := formatTime(file.ModTime)
@@ -40,8 +40,8 @@ func formatLongEntry(file MyLSFiles, lenNLink int, maxOwner, maxGroup, maxSize i
 
 	if file.IsBlockDevice || file.IsCharDevice {
 		size = fmt.Sprintf("%*d, %*d",
-			len(fmt.Sprint(file.MajorNumber)), file.MajorNumber,
-			len(fmt.Sprint(file.MinorNumber)), file.MinorNumber,
+			maxMajor, file.MajorNumber,
+			maxMinor, file.MinorNumber,
 		)
 	}
 
@@ -54,7 +54,8 @@ func formatLongEntry(file MyLSFiles, lenNLink int, maxOwner, maxGroup, maxSize i
 		fileName = fmt.Sprintf("%s%s%s -> %s%s%s", fileColor, fileName, reset, targetColor, file.LinkTarget, reset)
 	}
 
-	return fmt.Sprintf("%10s %*d %-*s %-*s %s %12s  %s%s%s",
+	// fmt.Println(maxSize)
+	return fmt.Sprintf("%10s %*d %-*s %-*s %s %12s %s%s%s",
 		permission,
 		lenNLink, file.NLink,
 		maxOwner, file.OwnerName,
@@ -131,7 +132,10 @@ func getPermission(file MyLSFiles) string {
 	if file.IsLink {
 		permission = strings.Replace(permission, "L", "l", 1)
 	}
-	if file.IsBlockDevice || file.IsCharDevice {
+	if file.IsBlockDevice {
+		permission = strings.Replace(permission, "D", "b", 1)
+	}
+	if file.IsCharDevice {
 		permission = strings.Replace(permission, "D", "", 1)
 	}
 	if file.IsSetuid {

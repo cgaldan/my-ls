@@ -151,7 +151,7 @@ func ProcessPaths(paths []string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 		info, err := os.Stat(path)
 		if err != nil {
 			// For simplicity, print error and skip that path.
-			fmt.Fprintf(os.Stderr, "myls: cannot access '%s': %v\n", path, err)
+			fmt.Printf("myls: cannot access '%s': No such file or directory\n", path)
 			continue
 		}
 		if info.IsDir() {
@@ -161,27 +161,19 @@ func ProcessPaths(paths []string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 		}
 	}
 
-	// Process files: Print them together in one block.
 	if len(filePaths) > 0 {
-		// If you want to support sorting files similarly to how you do for directories,
-		// you could convert them to a slice of your MyLSFiles and sort them.
-		for i, file := range filePaths {
-			fileInfo, err := os.Stat(file)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "myls: error reading file '%s': %v\n", file, err)
-				continue
-			}
-			// Use your existing helper function for printing file details.
-			printFileDetails(file, fileInfo, lFlag)
-			if i == len(filePaths)-1 && !lFlag {
-				fmt.Println()
-			}
-		}
-		// If there are directories also, separate the file block from directories with a blank line.
-		if len(dirPaths) > 0 {
-			fmt.Println()
-		}
+		// for i, file := range filePaths {
+		// if err != nil {
+		// 	fmt.Fprintf(os.Stderr, "myls: error reading file '%s': %v\n", file, err)
+		// 	continue
+		// }
+		printFilesDetails(filePaths, lFlag, rFlag, tFlag)
 	}
+	// If there are directories also, separate the file block from directories with a blank line.
+	if len(dirPaths) > 0 && len(filePaths) > 0 {
+		fmt.Println()
+	}
+	// }
 
 	// Process directories
 	for i, dir := range dirPaths {
@@ -214,7 +206,7 @@ func ProcessPaths(paths []string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 // and prints the results with color coding. If `RFlag` is set, it recursively lists subdirectories.
 func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 	var files []MyLSFiles
-	var subDirs []string
+	var subDirs []MyLSFiles
 
 	if dirName == "" {
 		dirName = "."
@@ -230,10 +222,10 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 		return
 	}
 
-	if !fileInfo.IsDir() {
-		printFileDetails(dirName, fileInfo, lFlag)
-		return
-	}
+	// if !fileInfo.IsDir() {
+	// 	printFileDetails(dirName, fileInfo, lFlag)
+	// 	return
+	// }
 
 	entries, err := os.ReadDir(dirName)
 	if err != nil {
@@ -265,8 +257,10 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 		}
 	}
 
+	var file MyLSFiles
+	var fileName string
 	for _, entry := range entries {
-		fileName := entry.Name()
+		fileName = entry.Name()
 		if !aFlag && strings.HasPrefix(fileName, ".") {
 			continue
 		}
@@ -276,13 +270,14 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 			continue
 		}
 
-		file := getFileAttributes(filepath.Join(dirName, fileName), info)
+		file = getFileAttributes(filepath.Join(dirName, fileName), info)
 		if stat, ok := info.Sys().(*syscall.Stat_t); ok {
 			totalBlocks += int64(stat.Blocks)
 		}
 		files = append(files, file)
 		if RFlag && file.IsDir {
-			subDirs = append(subDirs, filepath.Join(dirName, file.Name))
+			subDirs = append(subDirs, file)
+			sortFiles(&subDirs, tFlag, rFlag)
 		}
 		updateMaxLengths(&maxNlink, &maxSize, file)
 	}
@@ -295,9 +290,9 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 
 	if lFlag {
 		fmt.Printf("total %d\n", totalBlocks/2)
-		maxOwner, maxGroup, maxSize := calculateMaxWidth(files)
+		maxOwner, maxGroup, maxsize, maxMajor, maxMinor := calculateMaxWidth(files)
 		for i, file := range files {
-			fmt.Print(formatLongEntry(file, maxNlink, maxOwner, maxGroup, maxSize))
+			fmt.Print(formatLongEntry(file, maxNlink, maxOwner, maxGroup, maxsize, maxMajor, maxMinor))
 			if i != len(files)-1 {
 				fmt.Println()
 			}
@@ -313,19 +308,36 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 	if RFlag {
 		for _, subDir := range subDirs {
 			fmt.Println()
-			TheMainLS(subDir, lFlag, RFlag, aFlag, rFlag, tFlag)
+			subDirPath := filepath.Join(dirName, subDir.Name)
+			TheMainLS(subDirPath, lFlag, RFlag, aFlag, rFlag, tFlag)
 		}
 	}
 }
 
-func printFileDetails(path string, info os.FileInfo, lFlag bool) {
-	file := getFileAttributes(path, info)
-	if lFlag {
-		fmt.Println(formatLongEntry(file, len(strconv.Itoa(int(file.NLink))), len(strconv.Itoa(int(file.Size))), len(file.OwnerName), len(file.GroupName))) ////////////////////////////
-	} else {
-		printFiles([]MyLSFiles{file})
-		// fmt.Println() //////////////////////////////////////
+func printFilesDetails(paths []string, lFlag bool, rFlag bool, tFlag bool) {
+	var file MyLSFiles
+	var files []MyLSFiles
+	for _, path := range paths {
+		info, err := os.Lstat(path)
+		if err != nil {
+			fmt.Printf("myls: cannot access '%s': No such file or directory\n", path)
+			continue
+		}
+		file = getFileAttributes(path, info)
+		files = append(files, file)
 	}
+
+	sortFiles(&files, tFlag, rFlag)
+	maxOwner, maxGroup, maxsize, maxMajor, maxMinor := calculateMaxWidth(files)
+	if lFlag {
+		for _, file := range files {
+			fmt.Println(formatLongEntry(file, 0, maxOwner, maxGroup, maxsize, maxMajor, maxMinor)) ////////////////////////////
+		}
+	} else {
+		printFiles(files)
+		fmt.Println() //////////////////////////////////////
+	}
+
 }
 
 func updateMaxLengths(maxNlink, maxSize *int, file MyLSFiles) {
@@ -339,7 +351,9 @@ func updateMaxLengths(maxNlink, maxSize *int, file MyLSFiles) {
 	}
 }
 
-func calculateMaxWidth(files []MyLSFiles) (maxOwner, maxGroup, maxSize int) {
+func calculateMaxWidth(files []MyLSFiles) (maxOwner, maxGroup, maxSize, maxMajor, maxMinor int) {
+	maxMajor, maxMinor, maxRegular := 0, 0, 0
+
 	for _, file := range files {
 		if len(file.OwnerName) > maxOwner {
 			maxOwner = len(file.OwnerName)
@@ -348,31 +362,49 @@ func calculateMaxWidth(files []MyLSFiles) (maxOwner, maxGroup, maxSize int) {
 			maxGroup = len(file.GroupName)
 		}
 
-		var sizeField string
 		if file.IsBlockDevice || file.IsCharDevice {
-			sizeField = fmt.Sprintf("%3d, %3d", file.MajorNumber, file.MinorNumber)
-		} else {
-			sizeField = fmt.Sprintf("%d", file.Size)
-		}
+			majorLen := len(fmt.Sprint(file.MajorNumber))
+			minorLen := len(fmt.Sprint(file.MinorNumber))
 
-		if len(sizeField) > maxSize {
-			maxSize = len(sizeField)
+			if majorLen > maxMajor {
+				maxMajor = majorLen
+			}
+			if minorLen > maxMinor {
+				maxMinor = minorLen
+			}
+
+		} else {
+			sizeLen := len(fmt.Sprintf("%d", file.Size))
+			if sizeLen > maxRegular {
+				maxRegular = sizeLen
+			}
 		}
 	}
 
-	return maxOwner, maxGroup, maxSize
+	deviceField := maxMajor + maxMinor + 2
+	if deviceField > maxRegular && deviceField > 2 {
+		maxSize = deviceField
+	} else {
+		maxSize = maxRegular
+	}
+
+	return maxOwner, maxGroup, maxSize, maxMajor, maxMinor
 }
 
 func sortFiles(files *[]MyLSFiles, tFlag, rFlag bool) {
-	caseSensitive := isCaseSensitiveSort()
+	var caseSensitive bool
 
-	if caseSensitive {
-		sortByNameCaseSensitive(*files)
-	} else if tFlag {
+	if tFlag {
 		sortByTime(*files)
 	} else {
-		sortByName(*files)
+		caseSensitive = isCaseSensitiveSort()
+		if caseSensitive {
+			sortByNameCaseSensitive(*files)
+		} else {
+			sortByName(*files)
+		}
 	}
+
 	if rFlag {
 		reverseFiles(*files)
 	}

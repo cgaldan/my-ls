@@ -1,4 +1,4 @@
 build:
 	go build -o myls main.go
-clear:
+clean:
 	rm myls
