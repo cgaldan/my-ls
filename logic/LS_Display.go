@@ -3,7 +3,6 @@ package logic
 import (
 	"fmt"
 	"ls/utils"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -110,23 +109,21 @@ func printFiles(files []MyLSFiles) {
 				fmt.Print(padColoredString(names[index], coloredNames[index], widthOfColumns[column]+2))
 			}
 		}
-		if rows > 1 {
+		if rows > 1 && row != rows-1 {
 			fmt.Println()
 		}
 	}
 }
 
-func printDirHeader(dirName string) {
+func printDirHeader(dirName string) string {
 	var header string
 
 	if dirName == "." {
 		header = "."
-	} else if !filepath.IsAbs(dirName) && !strings.HasPrefix(dirName, "./") {
-		header = "./" + dirName
 	} else {
 		header = dirName
 	}
-	fmt.Println(header + ":")
+	return header + ":"
 }
 
 func getPermission(file MyLSFiles) string {

@@ -143,42 +143,34 @@ func (file MyLSFiles) GetColor() string {
 }
 
 func ProcessPaths(paths []string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
-	var filePaths []string
+	var fileEntries []MyLSFiles
 	var dirPaths []string
 
 	// Separate files and directories.
 	for _, path := range paths {
 		info, err := os.Stat(path)
 		if err != nil {
-			// For simplicity, print error and skip that path.
 			fmt.Printf("myls: cannot access '%s': No such file or directory\n", path)
 			continue
 		}
 		if info.IsDir() {
 			dirPaths = append(dirPaths, path)
 		} else {
-			filePaths = append(filePaths, path)
+			entry := getFileAttributes(path, info, true)
+			fileEntries = append(fileEntries, entry)
 		}
 	}
 
-	if len(filePaths) > 0 {
-		// for i, file := range filePaths {
-		// if err != nil {
-		// 	fmt.Fprintf(os.Stderr, "myls: error reading file '%s': %v\n", file, err)
-		// 	continue
-		// }
-		printFilesDetails(filePaths, lFlag, rFlag, tFlag)
+	if len(fileEntries) > 0 {
+		printFilesDetails(fileEntries, lFlag, rFlag, tFlag)
 	}
-	// If there are directories also, separate the file block from directories with a blank line.
-	if len(dirPaths) > 0 && len(filePaths) > 0 {
+
+	if len(dirPaths) > 0 && len(fileEntries) > 0 {
 		fmt.Println()
 	}
-	// }
 
 	// Process directories
 	for i, dir := range dirPaths {
-		// If more than one path is provided, print a header to mimic ls behavior.
-		// (You can also check that there's more than one directory.)
 		if len(paths) > 1 && !RFlag {
 			fmt.Printf("%s:\n", dir)
 		}
@@ -208,10 +200,6 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 	var files []MyLSFiles
 	var subDirs []MyLSFiles
 
-	if dirName == "" {
-		dirName = "."
-	}
-
 	fileInfo, err := os.Lstat(dirName)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -221,11 +209,6 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 		}
 		return
 	}
-
-	// if !fileInfo.IsDir() {
-	// 	printFileDetails(dirName, fileInfo, lFlag)
-	// 	return
-	// }
 
 	entries, err := os.ReadDir(dirName)
 	if err != nil {
@@ -238,22 +221,22 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 	}
 
 	var totalBlocks int64
-	var maxSize, maxNlink int
+	var maxNlink int
 
 	if aFlag {
-		dotFile := getFileAttributes(".", fileInfo)
+		dotFile := getFileAttributes(".", fileInfo, true)
 		files = append(files, dotFile)
 		if stat, ok := fileInfo.Sys().(*syscall.Stat_t); ok {
 			totalBlocks += int64(stat.Blocks)
 		}
 
 		if parentInfo, err := os.Stat(dirName + "/.."); err == nil {
-			parentFile := getFileAttributes(dirName+"/..", parentInfo)
+			parentFile := getFileAttributes(dirName+"/..", parentInfo, false)
 			files = append(files, parentFile)
 			if stat, ok := parentInfo.Sys().(*syscall.Stat_t); ok {
 				totalBlocks += int64(stat.Blocks)
 			}
-			updateMaxLengths(&maxNlink, &maxSize, parentFile)
+			updateMaxNlink(&maxNlink, parentFile)
 		}
 	}
 
@@ -270,22 +253,24 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 			continue
 		}
 
-		file = getFileAttributes(filepath.Join(dirName, fileName), info)
+		file = getFileAttributes(filepath.Join(dirName, fileName), info, false)
+		files = append(files, file)
+
 		if stat, ok := info.Sys().(*syscall.Stat_t); ok {
 			totalBlocks += int64(stat.Blocks)
 		}
-		files = append(files, file)
+
 		if RFlag && file.IsDir {
 			subDirs = append(subDirs, file)
 			sortFiles(&subDirs, tFlag, rFlag)
 		}
-		updateMaxLengths(&maxNlink, &maxSize, file)
+		updateMaxNlink(&maxNlink, file)
 	}
 
 	sortFiles(&files, tFlag, rFlag)
 
 	if RFlag {
-		printDirHeader(dirName)
+		fmt.Println(printDirHeader(dirName))
 	}
 
 	if lFlag {
@@ -297,7 +282,9 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 				fmt.Println()
 			}
 		}
-		fmt.Println() //////////////////////////////////////////////
+		if len(files) > 0 {
+			fmt.Println() //////////////////////////////////////////////
+		}
 	} else {
 		printFiles(files)
 		if len(files) > 0 {
@@ -314,19 +301,7 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 	}
 }
 
-func printFilesDetails(paths []string, lFlag bool, rFlag bool, tFlag bool) {
-	var file MyLSFiles
-	var files []MyLSFiles
-	for _, path := range paths {
-		info, err := os.Lstat(path)
-		if err != nil {
-			fmt.Printf("myls: cannot access '%s': No such file or directory\n", path)
-			continue
-		}
-		file = getFileAttributes(path, info)
-		files = append(files, file)
-	}
-
+func printFilesDetails(files []MyLSFiles, lFlag bool, rFlag bool, tFlag bool) {
 	sortFiles(&files, tFlag, rFlag)
 	maxOwner, maxGroup, maxsize, maxMajor, maxMinor := calculateMaxWidth(files)
 	if lFlag {
@@ -337,17 +312,12 @@ func printFilesDetails(paths []string, lFlag bool, rFlag bool, tFlag bool) {
 		printFiles(files)
 		fmt.Println() //////////////////////////////////////
 	}
-
 }
 
-func updateMaxLengths(maxNlink, maxSize *int, file MyLSFiles) {
+func updateMaxNlink(maxNlink *int, file MyLSFiles) {
 	strNLink := strconv.Itoa(int(file.NLink))
-	strSize := strconv.Itoa(int(file.Size))
 	if *maxNlink < len(strNLink) {
 		*maxNlink = len(strNLink)
-	}
-	if *maxSize < len(strSize) {
-		*maxSize = len(strSize)
 	}
 }
 
@@ -410,7 +380,7 @@ func sortFiles(files *[]MyLSFiles, tFlag, rFlag bool) {
 	}
 }
 
-func getFileAttributes(path string, info os.FileInfo) MyLSFiles {
+func getFileAttributes(path string, info os.FileInfo, isDirectArgument bool) MyLSFiles {
 	stat, _ := info.Sys().(*syscall.Stat_t)
 	var nlink uint64 = 1
 	var uid, gid uint32
@@ -441,7 +411,7 @@ func getFileAttributes(path string, info os.FileInfo) MyLSFiles {
 
 			if targetInfo, err := os.Lstat(absTarget); err == nil {
 
-				tf := getFileAttributes(absTarget, targetInfo)
+				tf := getFileAttributes(absTarget, targetInfo, false)
 				targetFile = &tf
 			}
 		}
@@ -454,7 +424,7 @@ func getFileAttributes(path string, info os.FileInfo) MyLSFiles {
 	}
 
 	return MyLSFiles{
-		Name:            filepath.Base(path),
+		Name:            getDisplayName(path, isDirectArgument),
 		IsDir:           info.IsDir(),
 		IsExec:          !info.IsDir() && (info.Mode().Perm()&0o111 != 0),
 		IsLink:          info.Mode()&os.ModeSymlink != 0,
@@ -478,6 +448,13 @@ func getFileAttributes(path string, info os.FileInfo) MyLSFiles {
 		GroupName:       groupName,
 		NLink:           nlink,
 	}
+}
+
+func getDisplayName(path string, isDirectArgument bool) string {
+	if isDirectArgument {
+		return path // Preserve original path for direct arguments
+	}
+	return filepath.Base(path) // Use base name for directory contents
 }
 
 // sortByName sorts the given slice of MyLSFiles in ascending order by name (case-insensitive).

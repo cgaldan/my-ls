@@ -29,7 +29,6 @@ To run this program you need to install **golang**
     ```
 # ToDo list
 - Sorting files when multi arguments
-- Check justification
 
 # FOR ME
 - Check symbolik link target files
@@ -38,4 +37,4 @@ To run this program you need to install **golang**
 
 # Audit fails notes
 - Fixing dir headers format with -R flag
-- Check puncuations
+- Check punctuations
