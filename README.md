@@ -28,13 +28,11 @@ To run this program you need to install **golang**
     ./myls [FLAGS]... [FILENAMES]...
     ```
 # ToDo list
-- Sorting files when multi arguments
+- Sorting files when more than one directory in arguments
 
 # FOR ME
 - Check symbolik link target files
 - Check Directory when parsed as an argument to be displayed this way
-- Check StickyDir && OtherWritable permissions
 
 # Audit fails notes
-- Fixing dir headers format with -R flag
 - Check punctuations

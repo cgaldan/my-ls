@@ -3,9 +3,10 @@ package logic
 import (
 	"fmt"
 	"ls/data"
+	"os"
 	"strconv"
-	"strings"
 	"time"
+	"unicode"
 )
 
 func FormatLongEntry(file data.MyLSFiles, lenNLink int, maxOwner, maxGroup, maxSize, maxMajor, maxMinor int) string {
@@ -48,26 +49,78 @@ func FormatLongEntry(file data.MyLSFiles, lenNLink int, maxOwner, maxGroup, maxS
 }
 
 func GetPermission(file data.MyLSFiles) string {
-	permission := file.Mode.String()
+	mode := file.Mode
+	perm := make([]byte, 10) // 1 type + 9 permissions
 
-	if file.IsLink {
-		permission = strings.Replace(permission, "L", "l", 1)
-	}
-	if file.IsBlockDevice {
-		permission = strings.Replace(permission, "D", "b", 1)
-	}
-	if file.IsCharDevice {
-		permission = strings.Replace(permission, "D", "", 1)
-	}
-	if file.IsSetuid {
-		permission = strings.Replace(permission, "u", "-", 1)
-	}
-	if file.IsSetgid {
-		permission = strings.Replace(permission, "g", "-", 1)
+	// File type
+	switch {
+	case file.IsLink:
+		perm[0] = 'l'
+	case file.IsDir:
+		perm[0] = 'd'
+	case file.IsBlockDevice:
+		perm[0] = 'b'
+	case file.IsCharDevice:
+		perm[0] = 'c'
+	default:
+		perm[0] = '-'
 	}
 
-	return permission
+	// Permissions
+	perm[1] = boolToChar(mode&0400 != 0, 'r') // User read
+	perm[2] = boolToChar(mode&0200 != 0, 'w') // User write
+	perm[3] = specialChar(mode&0100 != 0, mode&os.ModeSetuid != 0, 'x', 's')
+
+	perm[4] = boolToChar(mode&0040 != 0, 'r') // Group read
+	perm[5] = boolToChar(mode&0020 != 0, 'w') // Group write
+	perm[6] = specialChar(mode&0010 != 0, mode&os.ModeSetgid != 0, 'x', 's')
+
+	perm[7] = boolToChar(mode&0004 != 0, 'r') // Others read
+	perm[8] = boolToChar(mode&0002 != 0, 'w') // Others write
+	perm[9] = specialChar(mode&0001 != 0, mode&os.ModeSticky != 0, 'x', 't')
+
+	return string(perm)
 }
+
+// Helper functions
+func boolToChar(has bool, char byte) byte {
+	if has {
+		return char
+	}
+	return '-'
+}
+
+func specialChar(hasPerm, hasSpecial bool, normal, special byte) byte {
+	if hasSpecial {
+		if hasPerm {
+			return special
+		}
+		return byte(unicode.ToUpper(rune(special))) // S or T
+	}
+	return boolToChar(hasPerm, normal)
+}
+
+// func GetPermission(file data.MyLSFiles) string {
+// 	permission := file.Mode.String()
+
+// 	if file.IsLink {
+// 		permission = strings.Replace(permission, "L", "l", 1)
+// 	}
+// 	if file.IsBlockDevice {
+// 		permission = strings.Replace(permission, "D", "b", 1)
+// 	}
+// 	if file.IsCharDevice {
+// 		permission = strings.Replace(permission, "D", "", 1)
+// 	}
+// 	if file.IsSetuid {
+// 		permission = strings.Replace(permission, "u", "-", 1)
+// 	}
+// 	if file.IsSetgid {
+// 		permission = strings.Replace(permission, "g", "-", 1)
+// 	}
+
+// 	return permission
+// }
 
 func UpdateMaxNlink(maxNlink *int, file data.MyLSFiles) {
 	strNLink := strconv.Itoa(int(file.NLink))
