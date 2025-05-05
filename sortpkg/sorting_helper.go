@@ -6,21 +6,21 @@ import (
 	"strings"
 )
 
-var insensitiveLocales = map[string]bool{
-	"en_us.utf8": true,
-	"en_gb.utf8": true,
-	"de_de.utf8": true,
-	"fr_fr.utf8": true,
-	"es_es.utf8": true,
-	"it_it.utf8": true,
-	"nl_nl.utf8": true,
-	"pt_br.utf8": true,
-	"pt_pt.utf8": true,
-	"ru_ru.utf8": true,
-	"zh_cn.utf8": true,
-	"zh_tw.utf8": true,
-	"ja_jp.utf8": true,
-}
+// var insensitiveLocales = map[string]bool{
+// 	"en_us.utf8": true,
+// 	"en_gb.utf8": true,
+// 	"de_de.utf8": true,
+// 	"fr_fr.utf8": true,
+// 	"es_es.utf8": true,
+// 	"it_it.utf8": true,
+// 	"nl_nl.utf8": true,
+// 	"pt_br.utf8": true,
+// 	"pt_pt.utf8": true,
+// 	"ru_ru.utf8": true,
+// 	"zh_cn.utf8": true,
+// 	"zh_tw.utf8": true,
+// 	"ja_jp.utf8": true,
+// }
 
 func SortFiles(files *[]data.MyLSFiles, tFlag, rFlag bool) {
 	var caseSensitive bool
@@ -89,19 +89,36 @@ func reverseFiles(files []data.MyLSFiles) {
 	}
 }
 
+// func isCaseSensitiveSort() bool {
+// 	locale := strings.ToLower(os.Getenv("LC_COLLATE"))
+// 	if locale == "" {
+// 		locale = strings.ToLower(os.Getenv("LANG"))
+// 	}
+
+// 	if insensitiveLocales[locale] {
+// 		return false
+// 	}
+
+// 	if strings.HasPrefix(locale, "C") || strings.HasPrefix(locale, "POSIX") {
+// 		return true
+// 	}
+
+// 	return true
+// }
+
 func isCaseSensitiveSort() bool {
-	locale := strings.ToLower(os.Getenv("LC_COLLATE"))
-	if locale == "" {
-		locale = strings.ToLower(os.Getenv("LANG"))
+	// 1) pick up LC_COLLATE (preferred) or LANG
+	loc := os.Getenv("LC_COLLATE")
+	if loc == "" {
+		loc = os.Getenv("LANG")
 	}
 
-	if insensitiveLocales[locale] {
-		return false
+	// 2) lowercase & strip off any ".UTF-8" or "@modifier"
+	loc = strings.ToLower(loc)
+	if i := strings.IndexAny(loc, ".@"); i != -1 {
+		loc = loc[:i]
 	}
 
-	if strings.HasPrefix(locale, "C") || strings.HasPrefix(locale, "POSIX") {
-		return true
-	}
-
-	return true
+	// 3) only the special C/POSIX locales are case-sensitive
+	return loc == "c" || loc == "posix"
 }
