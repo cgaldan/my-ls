@@ -42,8 +42,7 @@ func SortFiles(files *[]data.MyLSFiles, tFlag, rFlag bool) {
 	}
 }
 
-// normalizeASCII removes any non-letter/non-digit characters
-// and lower-cases A–Z to a–z.
+// normalizeASCII keeps printable ASCII characters and converts A-Z to a-z.
 func normalizeASCII(name string) string {
 	var b strings.Builder
 	for i := 0; i < len(name); i++ {
@@ -56,7 +55,8 @@ func normalizeASCII(name string) string {
 		case c >= 'A' && c <= 'Z':
 			// convert uppercase to lowercase
 			b.WriteByte(c + ('a' - 'A'))
-			// else skip punctuation, spaces, etc.
+		case c >= ' ' && c <= '~': // keep printable ASCII characters including punctuation
+			b.WriteByte(c)
 		}
 	}
 	return b.String()
