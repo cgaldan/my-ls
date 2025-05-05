@@ -3,9 +3,9 @@ package logic
 import (
 	"fmt"
 	"io/fs"
+	"ls/utils"
 	"os"
 	"os/user"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -115,7 +115,7 @@ func (file MyLSFiles) GetColor() string {
 		return magenta
 	}
 
-	ext := strings.ToLower(filepath.Ext(file.Name))
+	ext := strings.ToLower(utils.Ext(file.Name))
 
 	switch ext {
 	case // Image files
@@ -248,12 +248,12 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 			continue
 		}
 
-		info, err := os.Lstat(filepath.Join(dirName, fileName))
+		info, err := os.Lstat(utils.Join(dirName, fileName))
 		if err != nil {
 			continue
 		}
 
-		file = getFileAttributes(filepath.Join(dirName, fileName), info, false)
+		file = getFileAttributes(utils.Join(dirName, fileName), info, false)
 		files = append(files, file)
 
 		if stat, ok := info.Sys().(*syscall.Stat_t); ok {
@@ -295,7 +295,7 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 	if RFlag {
 		for _, subDir := range subDirs {
 			fmt.Println()
-			subDirPath := filepath.Join(dirName, subDir.Name)
+			subDirPath := utils.Join(dirName, subDir.Name)
 			TheMainLS(subDirPath, lFlag, RFlag, aFlag, rFlag, tFlag)
 		}
 	}
@@ -373,6 +373,7 @@ func sortFiles(files *[]MyLSFiles, tFlag, rFlag bool) {
 		} else {
 			sortByName(*files)
 		}
+
 	}
 
 	if rFlag {
@@ -407,7 +408,7 @@ func getFileAttributes(path string, info os.FileInfo, isDirectArgument bool) MyL
 	if info.Mode()&os.ModeSymlink != 0 {
 		targetPath, err = os.Readlink(path)
 		if err == nil {
-			absTarget := filepath.Join(filepath.Dir(path), targetPath)
+			absTarget := utils.Join(utils.Dir(path), targetPath)
 
 			if targetInfo, err := os.Lstat(absTarget); err == nil {
 
@@ -454,7 +455,7 @@ func getDisplayName(path string, isDirectArgument bool) string {
 	if isDirectArgument {
 		return path // Preserve original path for direct arguments
 	}
-	return filepath.Base(path) // Use base name for directory contents
+	return utils.Base(path) // Use base name for directory contents
 }
 
 // sortByName sorts the given slice of MyLSFiles in ascending order by name (case-insensitive).
