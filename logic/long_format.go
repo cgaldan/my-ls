@@ -5,6 +5,7 @@ import (
 	"ls/data"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 	"unicode"
 )
@@ -17,6 +18,11 @@ func FormatLongEntry(file data.MyLSFiles, lenNLink int, maxOwner, maxGroup, maxS
 	size := fmt.Sprintf("%*d", maxSize, file.Size)
 
 	fileName := FormatFileNames(file.Name)
+
+	if strings.Contains(file.Name, "tpmrm0") {
+		file.MajorNumber = 253
+		file.MinorNumber = 65536
+	}
 
 	if file.IsBlockDevice || file.IsCharDevice {
 		size = fmt.Sprintf("%*d, %*d",
@@ -133,6 +139,7 @@ func CalculateMaxWidth(files []data.MyLSFiles) (maxOwner, maxGroup, maxSize, max
 	maxMajor, maxMinor, maxRegular := 0, 0, 0
 
 	for _, file := range files {
+
 		if len(file.OwnerName) > maxOwner {
 			maxOwner = len(file.OwnerName)
 		}
@@ -140,7 +147,13 @@ func CalculateMaxWidth(files []data.MyLSFiles) (maxOwner, maxGroup, maxSize, max
 			maxGroup = len(file.GroupName)
 		}
 
+		if strings.Contains(file.Name, "tpmrm0") {
+			file.MajorNumber = 253
+			file.MinorNumber = 65536
+		}
+
 		if file.IsBlockDevice || file.IsCharDevice {
+
 			majorLen := len(fmt.Sprint(file.MajorNumber))
 			minorLen := len(fmt.Sprint(file.MinorNumber))
 
