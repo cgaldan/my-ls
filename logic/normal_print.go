@@ -2,10 +2,12 @@ package logic
 
 import (
 	"fmt"
+	"ls/data"
 	"ls/utils"
 	"strings"
-	"time"
 )
+
+const reset = "\033[0m"
 
 var punctuationMarks = []string{
 	"!", "\"", "#", "$", "%", "&", "(", ")", "*", "+", ",",
@@ -28,44 +30,6 @@ func formatFileNames(fileName string) string {
 
 // formatLongEntry returns a detailed string for a file, including extra metadata.
 // It retrieves the number of links, owner, and group information from the file's syscall.Stat_t.
-func formatLongEntry(file MyLSFiles, lenNLink int, maxOwner, maxGroup, maxSize, maxMajor, maxMinor int) string {
-	permission := getPermission(file)
-
-	modTime := formatTime(file.ModTime)
-
-	size := fmt.Sprintf("%*d", maxSize, file.Size)
-
-	fileName := formatFileNames(file.Name)
-
-	if file.IsBlockDevice || file.IsCharDevice {
-		size = fmt.Sprintf("%*d, %*d",
-			maxMajor, file.MajorNumber,
-			maxMinor, file.MinorNumber,
-		)
-	}
-
-	fileColor := file.GetColor()
-	if file.IsLink {
-		targetColor := reset
-		if file.TargetFile != nil {
-			targetColor = file.TargetFile.GetColor()
-		}
-		fileName = fmt.Sprintf("%s%s%s -> %s%s%s", fileColor, fileName, reset, targetColor, file.LinkTarget, reset)
-	}
-
-	// fmt.Println(maxSize)
-	return fmt.Sprintf("%10s %*d %-*s %-*s %s %12s %s%s%s",
-		permission,
-		lenNLink, file.NLink,
-		maxOwner, file.OwnerName,
-		maxGroup, file.GroupName,
-		size,
-		modTime,
-		fileColor,
-		fileName,
-		reset,
-	)
-}
 
 func padColoredString(uncolored, colored string, width int) string {
 	// Calculate the number of spaces needed based on the visible (uncolored) length.
@@ -74,7 +38,7 @@ func padColoredString(uncolored, colored string, width int) string {
 	return colored + strings.Repeat(" ", padLen)
 }
 
-func printFiles(files []MyLSFiles) {
+func printFiles(files []data.MyLSFiles) {
 	width, err := utils.GetTerminalWidth()
 	if err != nil {
 		width = 80
@@ -124,37 +88,4 @@ func printDirHeader(dirName string) string {
 		header = dirName
 	}
 	return header + ":"
-}
-
-func getPermission(file MyLSFiles) string {
-	permission := file.Mode.String()
-
-	if file.IsLink {
-		permission = strings.Replace(permission, "L", "l", 1)
-	}
-	if file.IsBlockDevice {
-		permission = strings.Replace(permission, "D", "b", 1)
-	}
-	if file.IsCharDevice {
-		permission = strings.Replace(permission, "D", "", 1)
-	}
-	if file.IsSetuid {
-		permission = strings.Replace(permission, "u", "-", 1)
-	}
-	if file.IsSetgid {
-		permission = strings.Replace(permission, "g", "-", 1)
-	}
-
-	return permission
-}
-
-func formatTime(modTime time.Time) string {
-	now := time.Now()
-	sixMonthsAgo := now.AddDate(0, -6, 0)
-
-	if now.Sub(modTime) > 0 && modTime.After(sixMonthsAgo) {
-		return modTime.Format("Jan _2 15:04")
-	} else {
-		return modTime.Format("Jan _2  2006")
-	}
 }
