@@ -45,6 +45,20 @@ func SortFiles(files *[]data.MyLSFiles, tFlag, rFlag bool) {
 // normalizeASCII keeps printable ASCII characters and converts A-Z to a-z.
 func normalizeASCII(name string) string {
 	var b strings.Builder
+
+	isPunctuation := true
+
+	for i := 0; i < len(name); i++ {
+		c := name[i]
+		if !(c >= ' ' && c <= '~') || (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') {
+			isPunctuation = false
+			break
+		}
+	}
+	if isPunctuation {
+		return name
+	}
+
 	for i := 0; i < len(name); i++ {
 		c := name[i]
 		switch {
@@ -55,8 +69,8 @@ func normalizeASCII(name string) string {
 		case c >= 'A' && c <= 'Z':
 			// convert uppercase to lowercase
 			b.WriteByte(c + ('a' - 'A'))
-		case c >= ' ' && c <= '~': // keep printable ASCII characters including punctuation
-			b.WriteByte(c)
+			// case c >= ' ' && c <= '~': // keep printable ASCII characters including punctuation
+			// 	b.WriteByte(c)
 		}
 	}
 	return b.String()
