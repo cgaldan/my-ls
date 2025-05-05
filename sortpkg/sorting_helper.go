@@ -42,13 +42,31 @@ func SortFiles(files *[]data.MyLSFiles, tFlag, rFlag bool) {
 	}
 }
 
-// sortByName sorts the given slice of MyLSFiles in ascending order by name (case-insensitive).
-// It uses a simple bubble sort algorithm for ordering.
+// normalizeASCII removes any non-letter/non-digit characters
+// and lower-cases A–Z to a–z.
+func normalizeASCII(name string) string {
+	var b strings.Builder
+	for i := 0; i < len(name); i++ {
+		c := name[i]
+		switch {
+		case c >= '0' && c <= '9':
+			b.WriteByte(c)
+		case c >= 'a' && c <= 'z':
+			b.WriteByte(c)
+		case c >= 'A' && c <= 'Z':
+			// convert uppercase to lowercase
+			b.WriteByte(c + ('a' - 'A'))
+			// else skip punctuation, spaces, etc.
+		}
+	}
+	return b.String()
+}
+
 func sortByName(files []data.MyLSFiles) {
 	n := len(files)
 	for i := 0; i < n-1; i++ {
 		for j := 0; j < n-i-1; j++ {
-			if strings.ToLower(files[j].Name) > strings.ToLower(files[j+1].Name) {
+			if normalizeASCII(files[j].Name) > normalizeASCII(files[j+1].Name) {
 				files[j], files[j+1] = files[j+1], files[j]
 			}
 		}
@@ -59,7 +77,7 @@ func sortByNameCaseSensitive(files []data.MyLSFiles) {
 	n := len(files)
 	for i := 0; i < n-1; i++ {
 		for j := 0; j < n-i-1; j++ {
-			if files[j].Name > files[j+1].Name {
+			if normalizeASCII(files[j].Name) > normalizeASCII(files[j+1].Name) {
 				files[j], files[j+1] = files[j+1], files[j]
 			}
 		}

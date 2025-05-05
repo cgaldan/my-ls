@@ -20,7 +20,7 @@ func FormatFileNames(fileName string) string {
 	}
 
 	for _, mark := range PunctuationMarks {
-		if strings.Contains(fileName, mark) {
+		if fileName == mark {
 			fileName = fmt.Sprintf("'%s'", fileName)
 			break
 		}
