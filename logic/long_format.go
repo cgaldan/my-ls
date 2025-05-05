@@ -8,14 +8,14 @@ import (
 	"time"
 )
 
-func formatLongEntry(file data.MyLSFiles, lenNLink int, maxOwner, maxGroup, maxSize, maxMajor, maxMinor int) string {
-	permission := getPermission(file)
+func FormatLongEntry(file data.MyLSFiles, lenNLink int, maxOwner, maxGroup, maxSize, maxMajor, maxMinor int) string {
+	permission := GetPermission(file)
 
-	modTime := formatTime(file.ModTime)
+	modTime := FormatTime(file.ModTime)
 
 	size := fmt.Sprintf("%*d", maxSize, file.Size)
 
-	fileName := formatFileNames(file.Name)
+	fileName := FormatFileNames(file.Name)
 
 	if file.IsBlockDevice || file.IsCharDevice {
 		size = fmt.Sprintf("%*d, %*d",
@@ -26,11 +26,11 @@ func formatLongEntry(file data.MyLSFiles, lenNLink int, maxOwner, maxGroup, maxS
 
 	fileColor := file.GetColor()
 	if file.IsLink {
-		targetColor := reset
+		targetColor := Reset
 		if file.TargetFile != nil {
 			targetColor = file.TargetFile.GetColor()
 		}
-		fileName = fmt.Sprintf("%s%s%s -> %s%s%s", fileColor, fileName, reset, targetColor, file.LinkTarget, reset)
+		fileName = fmt.Sprintf("%s%s%s -> %s%s%s", fileColor, fileName, Reset, targetColor, file.LinkTarget, Reset)
 	}
 
 	// fmt.Println(maxSize)
@@ -43,11 +43,11 @@ func formatLongEntry(file data.MyLSFiles, lenNLink int, maxOwner, maxGroup, maxS
 		modTime,
 		fileColor,
 		fileName,
-		reset,
+		Reset,
 	)
 }
 
-func getPermission(file data.MyLSFiles) string {
+func GetPermission(file data.MyLSFiles) string {
 	permission := file.Mode.String()
 
 	if file.IsLink {
@@ -69,14 +69,14 @@ func getPermission(file data.MyLSFiles) string {
 	return permission
 }
 
-func updateMaxNlink(maxNlink *int, file data.MyLSFiles) {
+func UpdateMaxNlink(maxNlink *int, file data.MyLSFiles) {
 	strNLink := strconv.Itoa(int(file.NLink))
 	if *maxNlink < len(strNLink) {
 		*maxNlink = len(strNLink)
 	}
 }
 
-func calculateMaxWidth(files []data.MyLSFiles) (maxOwner, maxGroup, maxSize, maxMajor, maxMinor int) {
+func CalculateMaxWidth(files []data.MyLSFiles) (maxOwner, maxGroup, maxSize, maxMajor, maxMinor int) {
 	maxMajor, maxMinor, maxRegular := 0, 0, 0
 
 	for _, file := range files {
@@ -116,7 +116,7 @@ func calculateMaxWidth(files []data.MyLSFiles) (maxOwner, maxGroup, maxSize, max
 	return maxOwner, maxGroup, maxSize, maxMajor, maxMinor
 }
 
-func formatTime(modTime time.Time) string {
+func FormatTime(modTime time.Time) string {
 	now := time.Now()
 	sixMonthsAgo := now.AddDate(0, -6, 0)
 

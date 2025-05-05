@@ -7,19 +7,19 @@ import (
 	"strings"
 )
 
-const reset = "\033[0m"
+const Reset = "\033[0m"
 
-var punctuationMarks = []string{
+var PunctuationMarks = []string{
 	"!", "\"", "#", "$", "%", "&", "(", ")", "*", "+", ",",
 	"/", ":", ";", "<", "=", ">", "?", "@", "[", "\\", "]", "^", "`", "{", "|", "}", "~", " ",
 }
 
-func formatFileNames(fileName string) string {
+func FormatFileNames(fileName string) string {
 	if strings.Contains(fileName, "'") {
 		fileName = fmt.Sprintf("\"%s\"", fileName)
 	}
 
-	for _, mark := range punctuationMarks {
+	for _, mark := range PunctuationMarks {
 		if strings.Contains(fileName, mark) {
 			fileName = fmt.Sprintf("'%s'", fileName)
 			break
@@ -31,7 +31,7 @@ func formatFileNames(fileName string) string {
 // formatLongEntry returns a detailed string for a file, including extra metadata.
 // It retrieves the number of links, owner, and group information from the file's syscall.Stat_t.
 
-func padColoredString(uncolored, colored string, width int) string {
+func PadColoredString(uncolored, colored string, width int) string {
 	// Calculate the number of spaces needed based on the visible (uncolored) length.
 	padLen := max(width-len(uncolored), 0)
 
@@ -51,9 +51,9 @@ func printFiles(files []data.MyLSFiles) {
 	var allnames []string
 	for i, file := range files {
 		displayName := file.Name
-		displayName = formatFileNames(displayName)
+		displayName = FormatFileNames(displayName)
 		names[i] = displayName
-		coloredNames[i] = file.GetColor() + displayName + reset
+		coloredNames[i] = file.GetColor() + displayName + Reset
 		names[i] = displayName
 
 		totalLen += len(displayName)
@@ -70,7 +70,7 @@ func printFiles(files []data.MyLSFiles) {
 		for column := range columns {
 			index := column*rows + row
 			if index < len(files) {
-				fmt.Print(padColoredString(names[index], coloredNames[index], widthOfColumns[column]+2))
+				fmt.Print(PadColoredString(names[index], coloredNames[index], widthOfColumns[column]+2))
 			}
 		}
 		if rows > 1 && row != rows-1 {

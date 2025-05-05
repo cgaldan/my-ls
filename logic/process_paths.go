@@ -24,7 +24,7 @@ func ProcessPaths(paths []string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 		if info.IsDir() {
 			dirPaths = append(dirPaths, path)
 		} else {
-			entry := getFileAttributes(path, info, true)
+			entry := GetFileAttributes(path, info, true)
 			fileEntries = append(fileEntries, entry)
 		}
 	}
@@ -92,19 +92,19 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 	var maxNlink int
 
 	if aFlag {
-		dotFile := getFileAttributes(".", fileInfo, true)
+		dotFile := GetFileAttributes(".", fileInfo, true)
 		files = append(files, dotFile)
 		if stat, ok := fileInfo.Sys().(*syscall.Stat_t); ok {
 			totalBlocks += int64(stat.Blocks)
 		}
 
 		if parentInfo, err := os.Stat(dirName + "/.."); err == nil {
-			parentFile := getFileAttributes(dirName+"/..", parentInfo, false)
+			parentFile := GetFileAttributes(dirName+"/..", parentInfo, false)
 			files = append(files, parentFile)
 			if stat, ok := parentInfo.Sys().(*syscall.Stat_t); ok {
 				totalBlocks += int64(stat.Blocks)
 			}
-			updateMaxNlink(&maxNlink, parentFile)
+			UpdateMaxNlink(&maxNlink, parentFile)
 		}
 	}
 
@@ -121,7 +121,7 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 			continue
 		}
 
-		file = getFileAttributes(utils.Join(dirName, fileName), info, false)
+		file = GetFileAttributes(utils.Join(dirName, fileName), info, false)
 		files = append(files, file)
 
 		if stat, ok := info.Sys().(*syscall.Stat_t); ok {
@@ -132,7 +132,7 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 			subDirs = append(subDirs, file)
 			sortpkg.SortFiles(&subDirs, tFlag, rFlag)
 		}
-		updateMaxNlink(&maxNlink, file)
+		UpdateMaxNlink(&maxNlink, file)
 	}
 
 	sortpkg.SortFiles(&files, tFlag, rFlag)
@@ -143,9 +143,9 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 
 	if lFlag {
 		fmt.Printf("total %d\n", totalBlocks/2)
-		maxOwner, maxGroup, maxsize, maxMajor, maxMinor := calculateMaxWidth(files)
+		maxOwner, maxGroup, maxsize, maxMajor, maxMinor := CalculateMaxWidth(files)
 		for i, file := range files {
-			fmt.Print(formatLongEntry(file, maxNlink, maxOwner, maxGroup, maxsize, maxMajor, maxMinor))
+			fmt.Print(FormatLongEntry(file, maxNlink, maxOwner, maxGroup, maxsize, maxMajor, maxMinor))
 			if i != len(files)-1 {
 				fmt.Println()
 			}
@@ -171,10 +171,10 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 
 func printFilesDetails(files []data.MyLSFiles, lFlag bool, rFlag bool, tFlag bool) {
 	sortpkg.SortFiles(&files, tFlag, rFlag)
-	maxOwner, maxGroup, maxsize, maxMajor, maxMinor := calculateMaxWidth(files)
+	maxOwner, maxGroup, maxsize, maxMajor, maxMinor := CalculateMaxWidth(files)
 	if lFlag {
 		for _, file := range files {
-			fmt.Println(formatLongEntry(file, 0, maxOwner, maxGroup, maxsize, maxMajor, maxMinor)) ////////////////////////////
+			fmt.Println(FormatLongEntry(file, 0, maxOwner, maxGroup, maxsize, maxMajor, maxMinor)) ////////////////////////////
 		}
 	} else {
 		printFiles(files)

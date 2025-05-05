@@ -9,7 +9,7 @@ import (
 	"syscall"
 )
 
-func getFileAttributes(path string, info os.FileInfo, isDirectArgument bool) data.MyLSFiles {
+func GetFileAttributes(path string, info os.FileInfo, isDirectArgument bool) data.MyLSFiles {
 	stat, _ := info.Sys().(*syscall.Stat_t)
 	var nlink uint64 = 1
 	var uid, gid uint32
@@ -40,7 +40,7 @@ func getFileAttributes(path string, info os.FileInfo, isDirectArgument bool) dat
 
 			if targetInfo, err := os.Lstat(absTarget); err == nil {
 
-				tf := getFileAttributes(absTarget, targetInfo, false)
+				tf := GetFileAttributes(absTarget, targetInfo, false)
 				targetFile = &tf
 			}
 		}
@@ -53,13 +53,13 @@ func getFileAttributes(path string, info os.FileInfo, isDirectArgument bool) dat
 	}
 
 	return data.MyLSFiles{
-		Name:            getDisplayName(path, isDirectArgument),
+		Name:            GetDisplayName(path, isDirectArgument),
 		IsDir:           info.IsDir(),
 		IsExec:          !info.IsDir() && (info.Mode().Perm()&0o111 != 0),
 		IsLink:          info.Mode()&os.ModeSymlink != 0,
 		LinkTarget:      targetPath,
 		TargetFile:      targetFile,
-		IsBroken:        info.Mode()&os.ModeSymlink != 0 && !exists(path),
+		IsBroken:        info.Mode()&os.ModeSymlink != 0 && !Exists(path),
 		IsBlockDevice:   info.Mode()&os.ModeType == os.ModeDevice,
 		IsCharDevice:    info.Mode()&os.ModeType == (os.ModeDevice | os.ModeCharDevice),
 		MajorNumber:     major,
@@ -79,7 +79,7 @@ func getFileAttributes(path string, info os.FileInfo, isDirectArgument bool) dat
 	}
 }
 
-func getDisplayName(path string, isDirectArgument bool) string {
+func GetDisplayName(path string, isDirectArgument bool) string {
 	if isDirectArgument {
 		return path // Preserve original path for direct arguments
 	}
@@ -88,7 +88,7 @@ func getDisplayName(path string, isDirectArgument bool) string {
 
 // exists checks whether a file or directory exists at the given path.
 // Returns true if the file exists, otherwise returns false.
-func exists(path string) bool {
+func Exists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
 }
