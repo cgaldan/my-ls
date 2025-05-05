@@ -161,9 +161,13 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 	}
 
 	if RFlag {
+
 		for _, subDir := range subDirs {
 			fmt.Println()
-			subDirPath := utils.Join(dirName, subDir.Name)
+			dirName = strings.Trim(dirName, "/")
+			dirName += "/"
+			//fmt.Println(dirName)
+			subDirPath := dirName + utils.Clean(subDir.Name)
 			TheMainLS(subDirPath, lFlag, RFlag, aFlag, rFlag, tFlag)
 		}
 	}
