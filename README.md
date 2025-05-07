@@ -28,7 +28,6 @@ To run this program you need to install **golang**
     ./myls [FLAGS]... [FILENAMES]...
     ```
 # ToDo list to not fail
-- Sorting files when more than one directory in arguments
 
 # FOR ME (optional details)
 - Check symbolik link target files

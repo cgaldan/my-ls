@@ -11,8 +11,7 @@ import (
 )
 
 func ProcessPaths(paths []string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
-	var fileEntries []data.MyLSFiles
-	var dirPaths []string
+	var allEntries []data.MyLSFiles
 
 	// Separate files and directories.
 	for _, path := range paths {
@@ -21,29 +20,38 @@ func ProcessPaths(paths []string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 			fmt.Printf("myls: cannot access '%s': No such file or directory\n", path)
 			continue
 		}
-		if info.IsDir() {
-			dirPaths = append(dirPaths, path)
+		entry := GetFileAttributes(path, info, true)
+		allEntries = append(allEntries, entry)
+	}
+
+	var files []data.MyLSFiles
+	var dirs []data.MyLSFiles
+
+	for _, entry := range allEntries {
+		if entry.IsDir {
+			dirs = append(dirs, entry)
 		} else {
-			entry := GetFileAttributes(path, info, true)
-			fileEntries = append(fileEntries, entry)
+			files = append(files, entry)
 		}
 	}
 
-	if len(fileEntries) > 0 {
-		printFilesDetails(fileEntries, lFlag, rFlag, tFlag)
-	}
+	// Sort files and directories
+	sortpkg.SortFiles(&files, tFlag, rFlag)
+	sortpkg.SortFiles(&dirs, tFlag, rFlag)
 
-	if len(dirPaths) > 0 && len(fileEntries) > 0 {
-		fmt.Println()
-	}
-
-	// Process directories
-	for i, dir := range dirPaths {
-		if len(paths) > 1 && !RFlag {
-			fmt.Printf("%s:\n", dir)
+	if len(files) > 0 {
+		printFilesDetails(files, lFlag, rFlag, tFlag)
+		if len(dirs) > 0 {
+			fmt.Println()
 		}
-		TheMainLS(dir, lFlag, RFlag, aFlag, rFlag, tFlag)
-		if i != len(dirPaths)-1 {
+	}
+	// // Process directories
+	for i, dir := range dirs {
+		if len(allEntries) > 1 && !RFlag {
+			fmt.Printf("%s:\n", dir.Name)
+		}
+		processDirectory(dir.Name, lFlag, RFlag, aFlag, rFlag, tFlag)
+		if i != len(dirs)-1 {
 			fmt.Println()
 		}
 	}
@@ -64,7 +72,7 @@ func ProcessPaths(paths []string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 //
 // The function retrieves directory contents, filters them based on flags, sorts them,
 // and prints the results with color coding. If `RFlag` is set, it recursively lists subdirectories.
-func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
+func processDirectory(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 	var files []data.MyLSFiles
 	var subDirs []data.MyLSFiles
 
@@ -130,7 +138,6 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 
 		if RFlag && file.IsDir {
 			subDirs = append(subDirs, file)
-			sortpkg.SortFiles(&subDirs, tFlag, rFlag)
 		}
 		UpdateMaxNlink(&maxNlink, file)
 	}
@@ -138,6 +145,7 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 	sortpkg.SortFiles(&files, tFlag, rFlag)
 
 	if RFlag {
+		sortpkg.SortFiles(&subDirs, tFlag, rFlag)
 		fmt.Println(printDirHeader(dirName))
 	}
 
@@ -151,12 +159,12 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 			}
 		}
 		if len(files) > 0 {
-			fmt.Println() //////////////////////////////////////////////
+			fmt.Println()
 		}
 	} else {
 		printFiles(files)
 		if len(files) > 0 {
-			fmt.Println() ////////////////////////////////////////
+			fmt.Println()
 		}
 	}
 
@@ -168,7 +176,7 @@ func TheMainLS(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 			dirName += "/"
 			//fmt.Println(dirName)
 			subDirPath := dirName + utils.Clean(subDir.Name)
-			TheMainLS(subDirPath, lFlag, RFlag, aFlag, rFlag, tFlag)
+			processDirectory(subDirPath, lFlag, RFlag, aFlag, rFlag, tFlag)
 		}
 	}
 }
@@ -178,10 +186,10 @@ func printFilesDetails(files []data.MyLSFiles, lFlag bool, rFlag bool, tFlag boo
 	maxOwner, maxGroup, maxsize, maxMajor, maxMinor := CalculateMaxWidth(files)
 	if lFlag {
 		for _, file := range files {
-			fmt.Println(FormatLongEntry(file, 0, maxOwner, maxGroup, maxsize, maxMajor, maxMinor)) ////////////////////////////
+			fmt.Println(FormatLongEntry(file, 0, maxOwner, maxGroup, maxsize, maxMajor, maxMinor))
 		}
 	} else {
 		printFiles(files)
-		fmt.Println() //////////////////////////////////////
+		fmt.Println()
 	}
 }
