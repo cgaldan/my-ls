@@ -176,10 +176,11 @@ func processDirectory(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 
 		for _, subDir := range subDirs {
 			fmt.Println()
-			dirName = strings.Trim(dirName, "/")
+			for dirName[len(dirName)-1] == '/' {
+				dirName = strings.TrimSuffix(dirName, "/")
+			}
 			dirName += "/"
-			//fmt.Println(dirName)
-			subDirPath := dirName + utils.Clean(subDir.Name)
+			subDirPath := dirName + subDir.Name
 			processDirectory(subDirPath, lFlag, RFlag, aFlag, rFlag, tFlag)
 		}
 	}
