@@ -27,12 +27,10 @@ To run this program you need to install **golang**
     ```go
     ./myls [FLAGS]... [FILENAMES]...
     ```
-# ToDo list
+# ToDo list to not fail
 - Sorting files when more than one directory in arguments
 
-# FOR ME
+# FOR ME (optional details)
 - Check symbolik link target files
-- Check Directory when parsed as an argument to be displayed this way
-
-# Audit fails notes
+- Check path when parsed as an argument to be colored correctly
 - Check punctuations
