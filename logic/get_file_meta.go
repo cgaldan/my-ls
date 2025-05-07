@@ -52,7 +52,6 @@ func GetFileAttributes(path string, info os.FileInfo, isDirectArgument bool) dat
 		minor = uint32(stat.Rdev & 0xFF)
 	}
 
-	
 	return data.MyLSFiles{
 		Name:            GetDisplayName(path, isDirectArgument),
 		IsDir:           info.IsDir(),

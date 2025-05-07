@@ -15,9 +15,13 @@ func ProcessPaths(paths []string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 
 	// Separate files and directories.
 	for _, path := range paths {
-		info, err := os.Stat(path)
+		info, err := os.Lstat(path)
 		if err != nil {
-			fmt.Printf("myls: cannot access '%s': No such file or directory\n", path)
+			if os.IsNotExist(err) {
+				fmt.Printf("myls: cannot access '%s': No such file or directory\n", path)
+			} else {
+				fmt.Printf("myls: cannot access '%s': Not a directory\n", path)
+			}
 			continue
 		}
 		entry := GetFileAttributes(path, info, true)

@@ -103,3 +103,27 @@ echo
 ls --color=always "-"
 echo
 echo "======================================================="
+echo "Create file and link for this file and run both my-ls-1 and the system command ls with the arguments: \"-l <symlink file>/\""
+echo "======================================================="
+echo
+ls --color=always -l link_file/
+echo
+echo "======================================================="
+echo "Create file and link for this file and run both my-ls-1 and the system command ls with the arguments: \"-l <symlink file>\""
+echo "======================================================="
+echo
+ls --color=always -l link_file
+echo
+echo "======================================================="
+echo "Create directory that contains files and link for this directory and run both my-ls-1 and the system command ls with the arguments: \"-l <symlink dir>/\""
+echo "======================================================="
+echo
+ls --color=always -l link_dir/
+echo
+echo "======================================================="
+echo "Create directory that contains files and link for this directory and run both my-ls-1 and the system command ls with the arguments: \"-l <symlink dir>\""
+echo "======================================================="
+echo
+ls --color=always -l link_dir
+echo
+echo "======================================================="

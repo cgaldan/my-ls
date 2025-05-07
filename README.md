@@ -28,8 +28,9 @@ To run this program you need to install **golang**
     ./myls [FLAGS]... [FILENAMES]...
     ```
 # ToDo list to not fail
+- Fix link to directory file to print contents when in argument
+- Fix clean function. -R flag does not work with argument files starting with `/`
 
-# FOR ME (optional details)
-- Check symbolik link target files
-- Check path when parsed as an argument to be colored correctly
+# Optional Details
+- Check path when parsed as an argument to be colored correctly (based on the filetype not the parent filetype)
 - Check punctuations
