@@ -9,10 +9,14 @@ import (
 	"syscall"
 )
 
-func GetFileAttributes(path string, info os.FileInfo, isDirectArgument bool) data.MyLSFiles {
+const maxSymlinkDepth = 10
+
+func GetFileAttributes(path string, info os.FileInfo, isDirectArgument bool, depth int) data.MyLSFiles {
 	stat, _ := info.Sys().(*syscall.Stat_t)
 	var nlink uint64 = 1
 	var uid, gid uint32
+
+	file := data.MyLSFiles{}
 
 	if stat != nil {
 		nlink = uint64(stat.Nlink)
@@ -35,13 +39,27 @@ func GetFileAttributes(path string, info os.FileInfo, isDirectArgument bool) dat
 	var err error
 	if info.Mode()&os.ModeSymlink != 0 {
 		targetPath, err = os.Readlink(path)
-		if err == nil {
+		if err != nil {
+			file.IsBroken = true
+		} else {
 			absTarget := utils.Join(utils.Dir(path), targetPath)
 
-			if targetInfo, err := os.Lstat(absTarget); err == nil {
+			targetInfo, err := os.Lstat(absTarget)
+			if err != nil {
+				file.IsBroken = true
+			}
 
-				tf := GetFileAttributes(absTarget, targetInfo, false)
-				targetFile = &tf
+			tf := GetFileAttributes(absTarget, targetInfo, false, 0)
+			targetFile = &tf
+
+			if depth < maxSymlinkDepth {
+				finalInfo, err := os.Stat(absTarget)
+				if err != nil {
+					file.IsBroken = true
+				} else {
+					ft := GetFileAttributes(absTarget, finalInfo, false, depth+1)
+					file.FinalTarget = &ft
+				}
 			}
 		}
 	}
@@ -59,6 +77,7 @@ func GetFileAttributes(path string, info os.FileInfo, isDirectArgument bool) dat
 		IsLink:          info.Mode()&os.ModeSymlink != 0,
 		LinkTarget:      targetPath,
 		TargetFile:      targetFile,
+		FinalTarget:     file.FinalTarget,
 		IsBroken:        info.Mode()&os.ModeSymlink != 0 && !Exists(path),
 		IsBlockDevice:   info.Mode()&os.ModeType == os.ModeDevice,
 		IsCharDevice:    info.Mode()&os.ModeType == (os.ModeDevice | os.ModeCharDevice),

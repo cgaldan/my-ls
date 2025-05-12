@@ -35,7 +35,7 @@ func FormatLongEntry(file data.MyLSFiles, lenNLink int, maxOwner, maxGroup, maxS
 	if file.IsLink {
 		targetColor := Reset
 		if file.TargetFile != nil {
-			targetColor = file.TargetFile.GetColor()
+			targetColor = file.FinalTarget.GetColor()
 		}
 		fileName = fmt.Sprintf("%s%s%s -> %s%s%s", fileColor, fileName, Reset, targetColor, file.LinkTarget, Reset)
 	}
@@ -68,6 +68,8 @@ func GetPermission(file data.MyLSFiles) string {
 		perm[0] = 'b'
 	case file.IsCharDevice:
 		perm[0] = 'c'
+	case file.IsPipe:
+		perm[0] = 'p'
 	default:
 		perm[0] = '-'
 	}

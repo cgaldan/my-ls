@@ -33,6 +33,7 @@ type MyLSFiles struct {
 	IsExec          bool
 	IsLink          bool
 	LinkTarget      string
+	FinalTarget     *MyLSFiles
 	TargetFile      *MyLSFiles
 	IsBroken        bool
 	IsBlockDevice   bool
@@ -53,7 +54,7 @@ type MyLSFiles struct {
 	NLink           uint64
 }
 
-func (file MyLSFiles) GetColor() string {
+func (file *MyLSFiles) GetColor() string {
 	if file.IsBroken {
 		return bgBlack + red
 	}

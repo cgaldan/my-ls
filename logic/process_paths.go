@@ -24,7 +24,7 @@ func ProcessPaths(paths []string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 			}
 			continue
 		}
-		entry := GetFileAttributes(path, info, true)
+		entry := GetFileAttributes(path, info, true, 0)
 		allEntries = append(allEntries, entry)
 	}
 
@@ -32,6 +32,14 @@ func ProcessPaths(paths []string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 	var dirs []data.MyLSFiles
 
 	for _, entry := range allEntries {
+		if entry.IsLink {
+			if entry.TargetFile.IsDir && !lFlag {
+				dirs = append(dirs, entry)
+			} else {
+				files = append(files, entry)
+			}
+			continue
+		}
 		if entry.IsDir {
 			dirs = append(dirs, entry)
 		} else {
@@ -104,14 +112,14 @@ func processDirectory(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 	var maxNlink int
 
 	if aFlag {
-		dotFile := GetFileAttributes(".", fileInfo, true)
+		dotFile := GetFileAttributes(".", fileInfo, true, 0)
 		files = append(files, dotFile)
 		if stat, ok := fileInfo.Sys().(*syscall.Stat_t); ok {
 			totalBlocks += int64(stat.Blocks)
 		}
 
 		if parentInfo, err := os.Stat(dirName + "/.."); err == nil {
-			parentFile := GetFileAttributes(dirName+"/..", parentInfo, false)
+			parentFile := GetFileAttributes(dirName+"/..", parentInfo, false, 0)
 			files = append(files, parentFile)
 			if stat, ok := parentInfo.Sys().(*syscall.Stat_t); ok {
 				totalBlocks += int64(stat.Blocks)
@@ -133,7 +141,7 @@ func processDirectory(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 			continue
 		}
 
-		file = GetFileAttributes(utils.Join(dirName, fileName), info, false)
+		file = GetFileAttributes(utils.Join(dirName, fileName), info, false, 0)
 		files = append(files, file)
 
 		if stat, ok := info.Sys().(*syscall.Stat_t); ok {
