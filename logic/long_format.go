@@ -17,7 +17,7 @@ func FormatLongEntry(file data.MyLSFiles, lenNLink int, maxOwner, maxGroup, maxS
 
 	size := fmt.Sprintf("%*d", maxSize, file.Size)
 
-	fileName := FormatFileNames(file.Name)
+	fileName := file.Name
 
 	if strings.Contains(file.Name, "tpmrm0") {
 		file.MajorNumber = 253

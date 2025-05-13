@@ -51,7 +51,6 @@ func printFiles(files []data.MyLSFiles) {
 	var allnames []string
 	for i, file := range files {
 		displayName := file.Name
-		displayName = FormatFileNames(displayName)
 		names[i] = displayName
 		coloredNames[i] = file.GetColor() + displayName + Reset
 		names[i] = displayName

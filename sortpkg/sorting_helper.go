@@ -53,8 +53,6 @@ func normalizeASCII(name string) string {
 		case c >= 'A' && c <= 'Z':
 			// convert uppercase to lowercase
 			b.WriteByte(c + ('a' - 'A'))
-			// case c >= ' ' && c <= '~': // keep printable ASCII characters including punctuation
-			// 	b.WriteByte(c)
 		}
 	}
 	return b.String()
@@ -93,7 +91,7 @@ func sortByTime(files []data.MyLSFiles, caseSensitive bool) {
 				files[j], files[j+1] = files[j+1], files[j]
 			} else if files[j].ModTime.Equal(files[j+1].ModTime) {
 				a, b := files[j].Name, files[j+1].Name
-				if caseSensitive {
+				if !caseSensitive {
 					a = normalizeASCII(a)
 					b = normalizeASCII(b)
 				}

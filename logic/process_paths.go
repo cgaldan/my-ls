@@ -141,6 +141,9 @@ func processDirectory(dirName string, lFlag, RFlag, aFlag, rFlag, tFlag bool) {
 			continue
 		}
 
+		name := FormatFileNames(fileName)
+		fileName = name
+
 		file = GetFileAttributes(utils.Join(dirName, fileName), info, false, 0)
 		files = append(files, file)
 
